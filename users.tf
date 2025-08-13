@@ -54,4 +54,5 @@ resource "mysql_user" "user" {
     jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
     random_password.user_initial[each.key].result
   )
+  tls_option = try(each.value.tls_option, null)
 }
