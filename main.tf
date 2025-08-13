@@ -44,7 +44,7 @@ resource "random_password" "owner_initial" {
   }
   length           = 25
   special          = true
-  override_special = "=_-+@~#"
+  override_special = "=_-+~#"
   min_upper        = 2
   min_special      = 2
   min_numeric      = 2

@@ -12,7 +12,7 @@ locals {
     for key, user in var.users : key => {
       name = user.name
       admin_role = try(user.db_ref, "") != "" ? (
-        try(var.databases[user.db_ref].create_owner, false) ? mysql_user.owner[user.db_ref].name :
+        try(var.databases[user.db_ref].create_owner, false) ? mysql_user.owner[user.db_ref].user :
         var.databases[user.db_ref].owner
       ) : user.database_owner
     }
@@ -24,7 +24,8 @@ resource "mysql_grant" "user_all_db" {
     for key, user in var.users : key => user if try(user.grant, "") == "owner"
   }
   database = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
-  role     = mysql_user.user[each.key].name
+  user     = mysql_user.user[each.key].user
+  host     = mysql_user.user[each.key].host
   privileges = [
     "ALL PRIVILEGES"
   ]

@@ -12,7 +12,8 @@ resource "mysql_grant" "user_tab_def_priv" {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
   database = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
-  user     = mysql_user.user[each.key].name
+  user     = mysql_user.user[each.key].user
+  host     = mysql_user.user[each.key].host
   table    = "*"
   privileges = [
     "SELECT",
