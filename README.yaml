@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform Module for AWS MySQL Management
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -6,25 +6,594 @@ license: "APACHE2"
 copyrights:
   - name: "Cloud Ops Works LLC"
     url: "https://cloudops.works"
-    year: "2024"
+    year: "2025"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-mysql-management
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  A comprehensive Terraform module for managing AWS MySQL databases, users, roles, and permissions. This module provides automated MySQL user and database management with integrated AWS Secrets Manager support, password rotation capabilities, and optional Hoop.dev integration for secure database access.
 
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  This Terraform module simplifies AWS MySQL database management by providing a declarative approach to:
+  
+  - **Database Management**: Create and configure MySQL databases with custom character sets and collations
+  - **User Management**: Automated user creation with different permission levels (owner, readwrite, readonly)
+  - **Role Management**: Flexible role-based access control with granular permissions
+  - **Security Integration**: AWS Secrets Manager integration for secure credential storage
+  - **Password Rotation**: Automated password rotation with Lambda function support
+  - **Access Control**: Hoop.dev integration for secure, audited database access
+  - **Multi-Environment Support**: Hub and spoke architecture support for complex deployments
+
+  The module supports both RDS instances and Aurora clusters, with optional direct connection capabilities for existing database infrastructures.
 
 # How to use this project
-#usage: |-
+usage: |-
+  ## Basic Usage
+
+  ```hcl
+  module "mysql_management" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    # Organization configuration
+    org = {
+      organization_name = "mycompany"
+      organization_unit = "platform"
+      environment_type  = "dev"
+      environment_name  = "development"
+    }
+    
+    # Database configuration
+    databases = {
+      app_db = {
+        name                  = "application_db"
+        default_character_set = "utf8mb4"
+        default_collation    = "utf8mb4_unicode_ci"
+      }
+    }
+    
+    # User configuration
+    users = {
+      app_user = {
+        name  = "app_user"
+        grant = "readwrite"
+        db_ref = "app_db"
+      }
+      admin_user = {
+        name  = "admin_user"
+        grant = "owner"
+      }
+    }
+    
+    # RDS configuration
+    rds = {
+      enabled     = true
+      name        = "my-rds-instance"
+      secret_name = "rds/mysql/credentials"
+      cluster     = false
+    }
+  }
+  ```
+
+  ## Configuration Options
+
+  ### Organization Configuration
+  The `org` variable defines the organizational context for resource tagging and naming:
+  
+  ```hcl
+  org = {
+    organization_name = "mycompany"      # Company/organization name
+    organization_unit = "engineering"    # Department or unit
+    environment_type  = "production"     # Environment type
+    environment_name  = "prod"           # Environment name
+  }
+  ```
+
+  ### Database Configuration
+  Define databases using the `databases` variable:
+  
+  ```hcl
+  databases = {
+    primary_db = {
+      name                  = "primary_database"
+      create_owner         = false
+      owner                = "db_admin"
+      default_character_set = "utf8mb4"
+      default_collation    = "utf8mb4_general_ci"
+    }
+    analytics_db = {
+      name = "analytics"
+      # Uses defaults: utf8mb4 charset, utf8mb4_general_ci collation
+    }
+  }
+  ```
+
+  ### User Management
+  Configure users with different permission levels:
+  
+  ```hcl
+  users = {
+    # Application user with read-write access
+    app_user = {
+      name         = "application_user"
+      grant        = "readwrite"
+      db_ref       = "primary_db"
+    }
+    
+    # Read-only analytics user
+    analytics_user = {
+      name         = "analytics_reader"
+      grant        = "readonly"
+      database_name = "analytics"  # Direct database name instead of db_ref
+    }
+    
+    # Database owner with full privileges
+    db_owner = {
+      name  = "database_owner"
+      grant = "owner"
+    }
+  }
+  ```
+
+  ### Role-Based Access Control
+  Define custom roles with specific permissions:
+  
+  ```hcl
+  roles = {
+    backup_role = {
+      name         = "backup_operator"
+      db_ref       = "primary_db"
+      table_name   = "*"
+      grant_option = false
+      grants       = ["SELECT", "LOCK TABLES", "SHOW VIEW"]
+    }
+    
+    migration_role = {
+      name         = "migration_user"
+      database_name = "primary_database"
+      grants       = ["CREATE", "DROP", "ALTER", "INDEX"]
+      grant_option = true
+    }
+  }
+  ```
+
+  ### RDS Integration
+  Configure RDS instance or Aurora cluster integration:
+  
+  ```hcl
+  # For RDS Instance
+  rds = {
+    enabled     = true
+    name        = "my-mysql-instance"
+    secret_name = "rds/mysql/master"
+    cluster     = false
+  }
+  
+  # For Aurora Cluster
+  rds = {
+    enabled     = true
+    name        = "my-aurora-cluster"
+    secret_name = "rds/aurora/master"
+    cluster     = true
+  }
+  ```
+
+  ### Hoop.dev Integration
+  Enable secure database access through Hoop.dev:
+  
+  ```hcl
+  hoop = {
+    enabled         = true
+    agent          = "mysql-agent"
+    connection_name = "mysql-production"
+    admin_user     = "hoop_admin"
+    db_name        = "mysql"
+    engine         = "mysql"
+    server_name    = "mysql-prod-cluster"
+    cluster        = true
+    tags           = [
+      "environment=production",
+      "team=platform"
+    ]
+  }
+  ```
+
+  ### Password Rotation
+  Configure automatic password rotation:
+  
+  ```hcl
+  password_rotation_period = 30  # Rotate every 30 days
+  rotation_lambda_name    = "mysql-password-rotator"
+  rotation_duration       = "2h"
+  rotate_immediately      = false
+  ```
 
 # Example usage
-#examples: |-
+examples: |-
+  ## Example 1: Simple Application Database
+
+  ```hcl
+  module "app_mysql" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    org = {
+      organization_name = "acme-corp"
+      organization_unit = "backend"
+      environment_type  = "production"
+      environment_name  = "prod"
+    }
+    
+    databases = {
+      app_db = {
+        name = "ecommerce"
+      }
+    }
+    
+    users = {
+      app_user = {
+        name  = "ecommerce_api"
+        grant = "readwrite"
+        db_ref = "app_db"
+      }
+      readonly_user = {
+        name  = "reporting_user"
+        grant = "readonly"
+        db_ref = "app_db"
+      }
+    }
+    
+    rds = {
+      enabled     = true
+      name        = "ecommerce-mysql"
+      secret_name = "prod/ecommerce/mysql"
+    }
+  }
+  ```
+
+  ## Example 2: Multi-Database with Custom Roles
+
+  ```hcl
+  module "complex_mysql" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    org = {
+      organization_name = "enterprise"
+      organization_unit = "data-platform"
+      environment_type  = "staging"
+      environment_name  = "stg"
+    }
+    
+    databases = {
+      primary_db = {
+        name                  = "primary"
+        default_character_set = "utf8mb4"
+        default_collation    = "utf8mb4_unicode_ci"
+      }
+      analytics_db = {
+        name = "analytics"
+      }
+      logs_db = {
+        name = "application_logs"
+      }
+    }
+    
+    users = {
+      api_user = {
+        name   = "api_service"
+        grant  = "readwrite"
+        db_ref = "primary_db"
+      }
+      analytics_user = {
+        name   = "analytics_service"
+        grant  = "readonly"
+        db_ref = "analytics_db"
+      }
+    }
+    
+    roles = {
+      etl_role = {
+        name       = "etl_processor"
+        db_ref     = "analytics_db"
+        grants     = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+      }
+      backup_role = {
+        name       = "backup_operator"
+        table_name = "*"
+        grants     = ["SELECT", "LOCK TABLES"]
+      }
+    }
+    
+    rds = {
+      enabled     = true
+      name        = "enterprise-aurora"
+      secret_name = "staging/enterprise/aurora"
+      cluster     = true
+    }
+    
+    password_rotation_period = 90
+    rotation_lambda_name    = "mysql-rotator-staging"
+  }
+  ```
+
+  ## Example 3: Hoop.dev Integration
+
+  ```hcl
+  module "secure_mysql" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    org = {
+      organization_name = "fintech"
+      organization_unit = "security"
+      environment_type  = "production"
+      environment_name  = "prod"
+    }
+    
+    databases = {
+      transactions_db = {
+        name                  = "transactions"
+        default_character_set = "utf8mb4"
+        default_collation    = "utf8mb4_bin"
+      }
+    }
+    
+    users = {
+      app_user = {
+        name   = "transaction_api"
+        grant  = "readwrite"
+        db_ref = "transactions_db"
+      }
+    }
+    
+    rds = {
+      enabled     = true
+      name        = "fintech-mysql-cluster"
+      secret_name = "prod/fintech/mysql-cluster"
+      cluster     = true
+    }
+    
+    hoop = {
+      enabled         = true
+      agent          = "fintech-mysql-agent"
+      connection_name = "mysql-transactions-prod"
+      admin_user     = "hoop_admin"
+      db_name        = "transactions"
+      engine         = "mysql"
+      server_name    = "fintech-mysql-cluster"
+      cluster        = true
+      tags = [
+        "environment=production",
+        "compliance=pci-dss",
+        "team=security"
+      ]
+    }
+    
+    run_hoop                = false
+    password_rotation_period = 30
+    secrets_kms_key_id      = "alias/fintech-secrets"
+  }
+  ```
+
+  ## Example 4: Hub-Spoke Architecture
+
+  ```hcl
+  # Hub configuration
+  module "mysql_hub" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    is_hub    = true
+    spoke_def = "000"  # Hub designation
+    
+    org = {
+      organization_name = "enterprise"
+      organization_unit = "shared-services"
+      environment_type  = "production"
+      environment_name  = "shared"
+    }
+    
+    databases = {
+      shared_config = {
+        name = "shared_configuration"
+      }
+    }
+    
+    users = {
+      config_admin = {
+        name  = "shared_config_admin"
+        grant = "owner"
+      }
+    }
+    
+    rds = {
+      enabled     = true
+      name        = "shared-mysql-hub"
+      secret_name = "hub/shared/mysql"
+    }
+  }
+  
+  # Spoke configuration
+  module "mysql_spoke" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    is_hub    = false
+    spoke_def = "001"  # First spoke
+    
+    org = {
+      organization_name = "enterprise"
+      organization_unit = "application"
+      environment_type  = "production"
+      environment_name  = "app-prod"
+    }
+    
+    databases = {
+      app_data = {
+        name = "application_data"
+      }
+    }
+    
+    users = {
+      app_service = {
+        name   = "application_service"
+        grant  = "readwrite"
+        db_ref = "app_data"
+      }
+    }
+    
+    rds = {
+      enabled     = true
+      name        = "app-mysql-spoke-001"
+      secret_name = "spoke-001/app/mysql"
+    }
+  }
+  ```
 
 # How to get started quickly
-#quickstart: |-
+quickstart: |-
+  ## Quick Start with Terragrunt
+
+  ### 1. Create Directory Structure
+  ```bash
+  mkdir -p mysql-management/dev
+  cd mysql-management/dev
+  ```
+
+  ### 2. Create `terragrunt.hcl`
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.0.0"
+  }
+
+  include {
+    path = find_in_parent_folders()
+  }
+
+  inputs = {
+    org = {
+      organization_name = "quickstart"
+      organization_unit = "development"
+      environment_type  = "development"
+      environment_name  = "dev"
+    }
+
+    databases = {
+      test_db = {
+        name = "test_database"
+      }
+    }
+
+    users = {
+      test_user = {
+        name  = "test_user"
+        grant = "readwrite"
+        db_ref = "test_db"
+      }
+    }
+
+    rds = {
+      enabled     = true
+      name        = "test-mysql-instance"
+      secret_name = "dev/test/mysql"
+    }
+  }
+  ```
+
+  ### 3. Create Parent `terragrunt.hcl`
+  ```hcl
+  # ../terragrunt.hcl
+  remote_state {
+    backend = "s3"
+    config = {
+      bucket         = "your-terraform-state-bucket"
+      key            = "mysql-management/${path_relative_to_include()}/terraform.tfstate"
+      region         = "us-east-1"
+      encrypt        = true
+      dynamodb_table = "terraform-locks"
+    }
+  }
+  ```
+
+  ### 4. Deploy
+  ```bash
+  # Initialize and plan
+  terragrunt init
+  terragrunt plan
+
+  # Apply changes
+  terragrunt apply
+  ```
+
+  ### 5. Using Boilerplate Templates
+  The module includes boilerplate templates in the `.boilerplate` folder for faster setup:
+
+  ```bash
+  # Copy boilerplate
+  cp .boilerplate/terragrunt.hcl ./terragrunt.hcl
+  cp .boilerplate/inputs.yaml ./inputs.yaml
+  cp .boilerplate/local-tags.json ./local-tags.json
+  ```
+
+  Edit `inputs.yaml`:
+  ```yaml
+  # MySQL Configuration
+  databases:
+    my_app_db:
+      name: my_application
+      default_character_set: utf8mb4
+
+  users:
+    app_user:
+      name: my_app_user
+      grant: readwrite
+      db_ref: my_app_db
+
+  rds:
+    enabled: true
+    name: my-rds-instance
+    secret_name: dev/my-app/mysql
+  ```
+
+  Edit `local-tags.json`:
+  ```json
+  {
+    "Project": "my-project",
+    "Owner": "platform-team",
+    "CostCenter": "engineering"
+  }
+  ```
+
+  ## Minimal Example
+  For the simplest possible setup:
+
+  ```hcl
+  module "mysql" {
+    source = "cloudopsworks/terraform-module-aws-mysql-management"
+    
+    org = {
+      organization_name = "myorg"
+      organization_unit = "dev"
+      environment_type  = "development"
+      environment_name  = "dev"
+    }
+
+    # Create a single database with a readwrite user
+    databases = {
+      app = { name = "app_db" }
+    }
+    users = {
+      app = { name = "app_user", grant = "readwrite", db_ref = "app" }
+    }
+    rds = {
+      enabled = true
+      name = "my-mysql"
+      secret_name = "dev/mysql"
+    }
+  }
+  ```
+
+  This creates:
+  - One MySQL database named `app_db`
+  - One user `app_user` with read-write permissions
+  - AWS Secrets Manager integration
+  - Proper tagging based on organization context
 
 include:
   - "docs/targets.md"

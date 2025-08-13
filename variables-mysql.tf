@@ -14,14 +14,6 @@
 #     grant: owner | readwrite | readonly # (required) Grant type for the user
 #     db_ref: <db_ref> # (optional) Reference to the database this user is associated with, dafaults to the default dbname of server
 #     database_name: <database_name> # (optional) Name of the database this user is associated with, dafaults to the default dbname of server
-#     schema: <schema> # (optional) Schema this user is associated with, defaults to public
-#     login: true | false # (optional) If the user can login, defaults to true
-#     superuser: true | false # (optional) If the user is a superuser, defaults to false
-#     create_database: true | false # (optional) If the user can create databases, defaults to false
-#     replication: true | false # (optional) If the user can replicate, defaults to false
-#     encrypted_password: true | false # (optional) If the password is encrypted, defaults to true
-#     inherit: true | false # (optional) If the user inherits privileges from the parent role, defaults to true
-#     create_role: true | false # (optional) If the user can create roles, defaults to false
 variable "users" {
   description = "Users and user attributes - see docs for example"
   type        = any
@@ -29,17 +21,15 @@ variable "users" {
 }
 
 ## Roles definition - YAML format
-# users:
-#   <user_ref>:
+# roles:
+#   <role_ref>:
 #     name: <name> # (required) Name of the user
-#     grant: owner | readwrite | readonly # (required) Grant type for the user
 #     db_ref: <db_ref> # (optional) Reference to the database this user is associated with, dafaults to the default dbname of server
 #     database_name: <database_name> # (optional) Name of the database this user is associated with, dafaults to the default dbname of server
-#     schema: <schema> # (optional) Schema this user is associated with, defaults to public
-#     create_database: true | false # (optional) If the user can create databases, defaults to false
-#     replication: true | false # (optional) If the user can replicate, defaults to false
-#     inherit: true | false # (optional) If the user inherits privileges from the parent role, defaults to true
-#     create_role: true | false # (optional) If the user can create roles, defaults to false
+#     table_name: <table_name> # (optional) Name of the table this user is associated with, defaults to `*`
+#     grant_option: true | false # (optional) If the role has grant option, defaults to null
+#     grants: # (optional) Grants for the role, defaults to ALL PRIVILEGES
+#       - ALL PRIVILEGES # (optional) Grant type for the role, defaults to
 variable "roles" {
   description = "Roles and role attributes - see docs for example"
   type        = any
@@ -52,19 +42,8 @@ variable "roles" {
 #     name: <name> # (required) Name of the database
 #     create_owner: true | false # (optional) If the database should be created with an owner, defaults to false
 #     owner: <owner> # (optional) Owner of the database, required if create_owner is false
-#     collate: <collate> # (optional) Collate of the database, defaults to en_US.UTF-8
-#     ctype: <ctype> # (optional) Ctype of the database, defaults to en_US.UTF-8
-#     connection_limit: <connection_limit> # (optional) Connection limit for the database, defaults to -1 (no limit)
-#     is_template: true | false # (optional) If the database is a template, defaults to false
-#     from_template: <from_template> # (optional) Name of the template to use for the database, defaults to template0
-#     encoding: <encoding> # (optional) Encoding of the database, defaults to UTF8
-#     allow_connections: true | false # (optional) If the database allows connections, defaults to true
-#     alter_object_ownership: true | false # (optional) If the database should alter object ownership, defaults to false
-#     schemas:       # (optional) List of schemas to create in the database, defaults to empty list
-#       - name: <schema_name>
-#         owner: <schema_owner> # (optional) Owner of the schema, can be user_ref or name, defaults to the database owner
-#         reuse: true | false # (optional) If the schema should be reused if it already exists, defaults to true
-#         cascade_on_delete: true | false # (optional) If the schema should be deleted with cascade, defaults to false
+#     default_character_set: <mysql charset> # (optional) Character set of the database, defaults to `utf8mb4`
+#     default_collation: <mysql collation> # (optional) Collation of the database, defaults to `utf8mb4_general_ci`
 variable "databases" {
   description = "Databases and database attributes - see docs for example"
   type        = any
