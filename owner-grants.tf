@@ -35,7 +35,7 @@ resource "mysql_grant" "user_flush_all_db" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "owner"
   }
-  database = "*.*"
+  # database = "*.*"
   user     = mysql_user.user[each.key].user
   host     = mysql_user.user[each.key].host
   privileges = [
