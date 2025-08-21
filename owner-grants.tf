@@ -40,5 +40,6 @@ resource "mysql_grant" "user_flush_all_db" {
   host     = mysql_user.user[each.key].host
   privileges = [
     "RELOAD",
+    "SESSION_VARIABLES_ADMIN",
   ]
 }
