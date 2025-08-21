@@ -27,6 +27,7 @@ resource "mysql_grant" "user_all_db" {
   user     = mysql_user.user[each.key].user
   host     = mysql_user.user[each.key].host
   privileges = [
-    "ALL PRIVILEGES"
+    "ALL PRIVILEGES",
+    "FLUSH_TABLES"
   ]
 }
