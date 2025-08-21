@@ -39,7 +39,6 @@ resource "mysql_grant" "user_flush_all_db" {
   user     = mysql_user.user[each.key].user
   host     = mysql_user.user[each.key].host
   privileges = [
-    "FLUSH_TABLES",
     "RELOAD",
   ]
 }
