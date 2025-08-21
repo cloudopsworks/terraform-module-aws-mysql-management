@@ -41,6 +41,6 @@ resource "mysql_grant" "user_flush_all_db" {
   privileges = [
     "RELOAD",
     "SESSION_VARIABLES_ADMIN",
-    "SESSION_VARIABLES_ADMIN",
+    "SYSTEM_VARIABLES_ADMIN",
   ]
 }
