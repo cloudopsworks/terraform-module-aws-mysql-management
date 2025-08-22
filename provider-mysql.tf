@@ -53,7 +53,7 @@ locals {
     username    = try(var.hoop.username, "noop")
     password    = try(var.hoop.password, "noop")
     sslmode     = "disable"
-    engine      = try(var.hoop.engine, "postgresql")
+    engine      = try(var.hoop.engine, "mysql")
     admin_user  = var.hoop.admin_user
     db_name     = var.hoop.db_name
     superuser   = try(var.hoop.superuser, false)
@@ -64,7 +64,7 @@ locals {
     port        = var.direct.port
     username    = var.direct.username
     password    = var.direct.password
-    engine      = var.direct.engine
+    engine      = try(var.direct.engine, "mysql")
     admin_user  = var.direct.username
     db_name     = var.direct.db_name
     sslmode     = var.direct.sslmode
