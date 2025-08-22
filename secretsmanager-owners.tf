@@ -56,9 +56,8 @@ resource "aws_secretsmanager_secret_version" "owner" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname  = mysql_database.this[each.key].name
-    sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-    engine  = local.psql.engine
+    dbname = mysql_database.this[each.key].name
+    engine = local.psql.engine
   })
 }
 
@@ -109,9 +108,8 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname  = mysql_database.this[each.key].name
-    sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-    engine  = local.psql.engine
+    dbname = mysql_database.this[each.key].name
+    engine = local.psql.engine
   })
   lifecycle {
     ignore_changes = [

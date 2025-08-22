@@ -35,9 +35,8 @@ locals {
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
-      dbname  = try(user.db_ref, "") != "" ? mysql_database.this[user.db_ref].name : user.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-      engine  = local.psql.engine
+      dbname = try(user.db_ref, "") != "" ? mysql_database.this[user.db_ref].name : user.database_name
+      engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
         masterarn = data.aws_secretsmanager_secret.db_password[0].arn
@@ -48,39 +47,39 @@ locals {
     for key, user_secret in local.user_secrets_data : key => merge(user_secret,
       try(var.users[key].connection_string_type, "") == "jdbc" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
+        connection_string = format("jdbc:mysql://%s:%s/%s?user=%s&password=%s&useSSL=true",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.username, urlencode(user_secret.password)
+        )
       } : {},
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
-          user_secret.host, user_secret.user_secret,
-          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
-        user_secret.sslmode, try(var.users[key].schema, "public"))
+        connection_string = format("Server=%s;Port=%s;Database=%s;Uid=%s;Pwd=%s;SslMode=Preferred",
+          user_secret.host, user_secret.port,
+          user_secret.dbname, user_secret.username, user_secret.password,
+        )
       } : {},
       try(var.users[key].connection_string_type, "") == "odbc" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
+        connection_string = format("Driver={MySQL ODBC 5.2 UNICODE Driver};Server=%s;Port=%s;Database=%s;User=%s;Password=%s;Option=3;",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.username, user_secret.password
+        )
       } : {},
-      try(var.users[key].connection_string_type, "") == "gopq" ? {
+      try(var.users[key].connection_string_type, "") == "gomysql" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+        connection_string = format("%s:%s@tcp(%s):%s/%s?ssl=Preferred",
           user_secret.username, urlencode(user_secret.password), user_secret.host,
-          user_secret.port, user_secret.dbname, user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.port, user_secret.dbname
+        )
       } : {},
-      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
-        connection_string_type = var.users[key].connection_string_type
-        connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, urlencode(user_secret.password), user_secret.host,
-          user_secret.port, user_secret.dbname, user_secret.sslmode,
-        try(var.users[key].schema, "public"))
-      } : {}
+      # length(regexall("node|python", try(var.users[key].connection_string_type, ""))) > 0 ? {
+      #   connection_string_type = var.users[key].connection_string_type
+      #   connection_string = format("postgresql://%s:%s@tcp(%s:%s)/%s?ssl=Preferred",
+      #     user_secret.username, urlencode(user_secret.password), user_secret.host,
+      #     user_secret.port, user_secret.dbname
+      #   )
+      # } : {}
     )
   }
   user_rotated_secrets_data = {
@@ -99,9 +98,8 @@ locals {
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
-      dbname  = try(user.db_ref, "") != "" ? mysql_database.this[user.db_ref].name : user.database_name
-      sslmode = local.hoop_connect ? var.hoop.default_sslmode : "require"
-      engine  = local.psql.engine
+      dbname = try(user.db_ref, "") != "" ? mysql_database.this[user.db_ref].name : user.database_name
+      engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
         masterarn = data.aws_secretsmanager_secret.db_password[0].arn
@@ -112,39 +110,39 @@ locals {
     for key, user_secret in local.user_rotated_secrets_data : key => merge(user_secret,
       try(var.users[key].connection_string_type, "") == "jdbc" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("jdbc:postgresql://%s:%s/%s?user=%s&password=%s&ssl=true&sslmode=%s&schema=%s",
+        connection_string = format("jdbc:mysql://%s:%s/%s?user=%s&password=%s&useSSL=true",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.username, user_secret.password
+        )
       } : {},
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;SSL Mode=%s;Search Path=%s",
+        connection_string = format("Server=%s;Port=%s;Database=%s;Uid=%s;Pwd=%s;SslMode=Preferred",
           user_secret.host, user_secret.port,
-          user_secret.dbname, user_secret.username, urlencode(user_secret.password),
-        user_secret.sslmode, try(var.users[key].schema, "public"))
+          user_secret.dbname, user_secret.username, user_secret.password
+        )
       } : {},
       try(var.users[key].connection_string_type, "") == "odbc" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("Driver={PostgreSQL ODBC Driver(UNICODE)};Server=%s;Port=%s;Database=%s;UID=%s;PWD=%s;sslmode=%s;schema=%s",
+        connection_string = format("Driver={MySQL ODBC 5.2 UNICODE Driver};Server=%s;Port=%s;Database=%s;User=%s;Password=%s;Option=3;",
           user_secret.host, user_secret.port, user_secret.dbname,
-          user_secret.username, urlencode(user_secret.password), user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.username, user_secret.password
+        )
       } : {},
-      try(var.users[key].connection_string_type, "") == "gopq" ? {
+      try(var.users[key].connection_string_type, "") == "gomysql" ? {
         connection_string_type = var.users[key].connection_string_type
-        connection_string = format("postgres://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+        connection_string = format("%s:%s@tcp(%s):%s/%s?ssl=Preferred",
           user_secret.username, urlencode(user_secret.password), user_secret.host,
-          user_secret.port, user_secret.dbname, user_secret.sslmode,
-        try(var.users[key].schema, "public"))
+          user_secret.port, user_secret.dbname
+        )
       } : {},
-      length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
-        connection_string_type = var.users[key].connection_string_type
-        connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
-          user_secret.username, urlencode(user_secret.password), user_secret.host,
-          user_secret.port, user_secret.dbname, user_secret.sslmode,
-        try(var.users[key].schema, "public"))
-      } : {}
+      # length(regexall("node-pg|psycopg|rustpg", try(var.users[key].connection_string_type, ""))) > 0 ? {
+      #   connection_string_type = var.users[key].connection_string_type
+      #   connection_string = format("postgresql://%s:%s@%s:%s/%s?sslmode=%s&schema=%s",
+      #     user_secret.username, urlencode(user_secret.password), user_secret.host,
+      #     user_secret.port, user_secret.dbname, user_secret.sslmode,
+      #   try(var.users[key].schema, "public"))
+      # } : {}
     )
   }
 }

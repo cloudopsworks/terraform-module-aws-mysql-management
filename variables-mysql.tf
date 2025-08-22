@@ -55,13 +55,15 @@ variable "databases" {
 #   enabled: true | false # (optional) If the hoop should be enabled, defaults to false, if hoop is enabled and rds is enabled, hoop connection strings will be generated as outputs
 #   agent: "agent_name" # (optional) Name of the hoop agent, required if enabled is true
 #   # Optional below for rds.enabled=false and run with a 'hoop connect' session, most suited for local runs
-#   connection_name: "rds-db-shared-forward-coreswitch-dev-001-usea1-ow"
-#   admin_user: "forward_admin"
-#   db_name: "postgres"
-#   engine: "postgres"
-#   default_sslmode: "require"
-#   server_name: "rds-db-shared-forward-coreswitch-dev-001-usea1"
+#   connection_name: "mysql-prod-forward-myapp-dev-001-usea1-ow"
+#   db_name: "mysql"
+#   engine: "mysql"
+#   server_name: "mysql-prod-cluster"
 #   cluster: false
+#   # Optional local tunnel parameters (used when hoop.enabled=true and running `hoop connect`):
+#   # port: 3306
+#   # username: "localuser"
+#   # password: "localpass"
 #   tags:  # (optional) Tags to apply to the hoop, hoop format <tagname>=<tagvalue>, defaults to empty list
 #     - tag_name=tag_value
 variable "hoop" {
@@ -73,9 +75,11 @@ variable "hoop" {
 ## RDS attributes - YAML format
 # rds:
 #   enabled: true | false # (optional) If the RDS should be enabled, defaults to false
-#   name: "<rds_name>" # (optional) Name of the RDS instance, required if enabled is true
+#   name: "<rds_name>" # (optional) Name of the RDS instance or cluster, required if enabled is true
 #   secret_name: "<rds_secret_name>" # (optional) Name of the RDS secret, required if enabled is true
 #   cluster: true | false # (optional) If the RDS is an Aurora RDS Cluster, defaults to false
+#   from_secret: true | false # (optional) Read all connection details from secret (host, port, username, engine, dbname)
+#   server_name: "<logical_server_name>" # (optional) Override server logical name (used in outputs and Hoop)
 variable "rds" {
   description = "RDS attributes - see docs for example"
   type        = any

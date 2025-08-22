@@ -18,8 +18,8 @@ resource "mysql_grant" "role" {
     for k, role in var.roles : k => role if try(role.grant, "") != ""
   }
   role       = mysql_role.role[each.key].name
-  database = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : try(each.value.database_name, "*")
-  table     = try(each.value.table_name, "*")
+  database   = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : try(each.value.database_name, "*")
+  table      = try(each.value.table_name, "*")
   privileges = try(each.value.grants, ["ALL PRIVILEGES"])
-  grant = try(each.value.grant_option, null)
+  grant      = try(each.value.grant_option, null)
 }

@@ -1,18 +1,29 @@
-# Module configuration
-# Required variables
-{{- range .requiredVariables }}
-{{- if ne .Name "org"}}
-# Description {{ .Description }} , Type: {{ .Type }}
-{{ .Name }}: {{ .DefaultValuePlaceholder }}
-{{- end }}
+# Example inputs for the MySQL management module
+# Copy this file to your working directory and adjust values as needed
 
-{{- end }}
-# Optional variables
-{{- range .optionalVariables }}
-{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-{{- end }}
+# MySQL Configuration
+databases:
+  my_app_db:
+    name: my_application
+    default_character_set: utf8mb4
 
-{{- end }}
+users:
+  app_user:
+    name: my_app_user
+    grant: readwrite
+    db_ref: my_app_db
 
+rds:
+  enabled: true
+  name: my-rds-instance
+  secret_name: dev/my-app/mysql
+  cluster: false
+
+# Optional advanced settings
+# password_rotation_period: 90
+# rotation_lambda_name: ""
+# rotation_duration: "1h"
+# rotate_immediately: false
+# secrets_kms_key_id: null
+# hoop:
+#   enabled: false

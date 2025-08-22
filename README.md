@@ -226,7 +226,7 @@ hoop = {
   enabled         = true
   agent          = "mysql-agent"
   connection_name = "mysql-production"
-  admin_user     = "hoop_admin"
+  username       = "hoop_admin"
   db_name        = "mysql"
   engine         = "mysql"
   server_name    = "mysql-prod-cluster"
@@ -246,6 +246,95 @@ password_rotation_period = 30  # Rotate every 30 days
 rotation_lambda_name    = "mysql-password-rotator"
 rotation_duration       = "2h"
 rotate_immediately      = false
+```
+
+### Detailed Configuration Reference
+
+The following inputs are maps/objects used to declaratively manage MySQL. Field-level details are derived from variables-mysql.tf and inline comments.
+
+- Databases (databases: map):
+  - name (string, required): Database name
+  - create_owner (bool, default: false): Create the database with an owner account
+  - owner (string, optional): Owner username if create_owner is false
+  - default_character_set (string, default: utf8mb4): MySQL character set
+  - default_collation (string, default: utf8mb4_general_ci): MySQL collation
+
+- Users (users: map):
+  - name (string, required): Username
+  - grant (string, required): one of owner | readwrite | readonly
+  - db_ref (string, optional): Reference to a database defined in databases
+  - database_name (string, optional): Direct database name (alternative to db_ref)
+
+- Roles (roles: map):
+  - name (string, required): Role/user name for grants
+  - db_ref (string, optional): Reference to a database defined in databases
+  - database_name (string, optional): Direct database name (alternative to db_ref)
+  - table_name (string, default: "*"): Table name to scope grants
+  - grants (list(string), default: ["ALL PRIVILEGES"]): Privileges to grant
+  - grant_option (bool, optional): Allow granting privileges to others
+
+- RDS (rds: object):
+  - enabled (bool, default: false): Whether to use AWS RDS/Aurora
+  - name (string, required if enabled): DB instance or cluster name
+  - secret_name (string, required if enabled): Secrets Manager secret holding master credentials
+  - cluster (bool, default: false): If the target is an Aurora cluster
+  - from_secret (bool, optional): If true, read all connection details from secret (provider-supported)
+  - server_name (string, optional): Override server logical name (used in outputs)
+
+- Direct connection (direct: object): Used when rds.enabled=false and not using Hoop
+  - server_name (string, required): Logical name for the server
+  - host (string, required)
+  - port (number, required)
+  - username (string, required)
+  - password (string, required)
+  - engine (string, default: mysql)
+  - db_name (string, required)
+
+- Hoop.dev (hoop: object): Enable local/secured connection via Hoop
+  - enabled (bool, default: false)
+  - agent (string, required if enabled): Hoop agent name
+  - connection_name (string, optional): Hoop connection name to start tunnel
+  - server_name (string, required if enabled): Logical DB server name
+  - db_name (string, required if enabled)
+  - engine (string, default: mysql)
+  - cluster (bool, default: false)
+  - port (number, default: 3306): Local tunnel port used by provider
+  - username (string, optional): Local tunnel username if needed
+  - password (string, optional): Local tunnel password if needed
+  - tags (list(string), default: []): Formatted as tag=value for Hoop resource
+  - run_hoop (bool, default: false via separate variable): If true, execute hoop connect via null_resource
+
+- Rotation & Secrets:
+  - password_rotation_period (number, default: 90): Days between rotations
+  - rotation_lambda_name (string, default: ""): Lambda name used by Secrets Manager rotation
+  - rotation_duration (string, default: "1h"): Max rotation duration
+  - rotate_immediately (bool, default: false)
+  - force_reset (bool, default: false)
+  - secrets_kms_key_id (string, default: null): KMS key/alias for Secrets Manager
+
+Example inputs.yaml (for Terragrunt):
+```yaml
+databases:
+  app:
+    name: app_db
+    default_character_set: utf8mb4
+users:
+  app:
+    name: app_user
+    grant: readwrite
+    db_ref: app
+rds:
+  enabled: true
+  name: my-mysql
+  secret_name: dev/mysql
+  cluster: false
+password_rotation_period: 90
+rotation_lambda_name: ""
+rotation_duration: "1h"
+rotate_immediately: false
+secrets_kms_key_id: null
+hoop:
+  enabled: false
 ```
 
 ## Quick Start
@@ -332,6 +421,11 @@ cp .boilerplate/terragrunt.hcl ./terragrunt.hcl
 cp .boilerplate/inputs.yaml ./inputs.yaml
 cp .boilerplate/local-tags.json ./local-tags.json
 ```
+
+Note: The provided .boilerplate/terragrunt.hcl expects parent-level files (e.g., env-inputs.yaml and global-tags.json) in a hub/spoke layout. If you don't have those, you can:
+- Provide the expected files in parent folders, or
+- Set org inline in terragrunt.hcl (see commented example inside the template), or
+- Pass org via inputs.yaml and reference it from terragrunt.hcl.
 
 Edit `inputs.yaml`:
 ```yaml
@@ -545,7 +639,7 @@ module "secure_mysql" {
     enabled         = true
     agent          = "fintech-mysql-agent"
     connection_name = "mysql-transactions-prod"
-    admin_user     = "hoop_admin"
+    username       = "hoop_admin"
     db_name        = "transactions"
     engine         = "mysql"
     server_name    = "fintech-mysql-cluster"
