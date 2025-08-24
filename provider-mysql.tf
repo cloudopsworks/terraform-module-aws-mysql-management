@@ -50,6 +50,8 @@ locals {
     server_name = var.direct.server_name
     host        = var.direct.host
     port        = var.direct.port
+    jump_host   = try(var.direct.jump_host, "")
+    jump_port   = try(var.direct.jump_port, "")
     username    = var.direct.username
     password    = var.direct.password
     engine      = try(var.direct.engine, "mysql")
@@ -65,7 +67,10 @@ locals {
 }
 
 provider "mysql" {
-  endpoint = format("%s:%s", local.psql.host, local.psql.port)
+  endpoint = format("%s:%s",
+    try(local.psql.jump_host, "") != "" ? local.psql.jump_host : local.psql.host,
+    try(local.psql.jump_port, "") != "" ? local.psql.jump_port : local.psql.port
+  )
   username = local.psql.username
   password = local.psql.password
   tls      = "skip-verify"
