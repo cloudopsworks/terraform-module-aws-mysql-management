@@ -52,6 +52,12 @@ locals {
           user_secret.username, urlencode(user_secret.password)
         )
       } : {},
+      try(var.users[key].connection_string_type, "") == "jdbc_plain" ? {
+        connection_string_type = "jdbc"
+        connection_string = format("jdbc:mysql://%s:%s/%s",
+          user_secret.host, user_secret.port, user_secret.dbname
+        )
+      } : {},
       try(var.users[key].connection_string_type, "") == "dotnet" ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Server=%s;Port=%s;Database=%s;Uid=%s;Pwd=%s;SslMode=Preferred",

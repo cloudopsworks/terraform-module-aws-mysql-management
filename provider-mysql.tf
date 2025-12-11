@@ -9,7 +9,7 @@
 
 locals {
   hoop_connect = try(var.hoop.enabled, false) && try(var.hoop.connection_name, "") != ""
-  from_secret  = try(var.rds.enabled, false) || try(var.rds.from_secret, false) ? jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string) : {}
+  from_secret  = try(var.rds.enabled, false) || try(var.rds.from_secret, false) || try(var.direct.secret_name, "") != "" ? jsondecode(data.aws_secretsmanager_secret_version.db_password[0].secret_string) : {}
   rds_secret_psql = try(var.rds.from_secret, false) ? {
     server_name = nonsensitive(try(var.rds.server_name, "") != "" ? var.rds.server_name : try(local.from_secret["dbInstanceIdentifier"], local.from_secret["dbClusterIdentifier"]))
     host        = nonsensitive(local.from_secret["host"])
@@ -52,8 +52,8 @@ locals {
     port        = var.direct.port
     jump_host   = try(var.direct.jump_host, "")
     jump_port   = try(var.direct.jump_port, "")
-    username    = try(var.rds.from_secret, false) ? nonsensitive(local.from_secret["username"]) : var.direct.username
-    password    = try(var.rds.from_secret, false) ? local.from_secret["password"] : sensitive(var.direct.password)
+    username    = try(var.direct.secret_name, "") != "" ? nonsensitive(local.from_secret["username"]) : var.direct.username
+    password    = try(var.direct.secret_name, "") != "" ? local.from_secret["password"] : sensitive(var.direct.password)
     engine      = try(var.direct.engine, "mysql")
     db_name     = var.direct.db_name
   } : null
