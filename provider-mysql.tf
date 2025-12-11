@@ -52,8 +52,8 @@ locals {
     port        = var.direct.port
     jump_host   = try(var.direct.jump_host, "")
     jump_port   = try(var.direct.jump_port, "")
-    username    = var.direct.username
-    password    = var.direct.password
+    username    = try(var.rds.from_secret, false) ? nonsensitive(local.from_secret["username"]) : var.direct.username
+    password    = try(var.rds.from_secret, false) ? local.from_secret["password"] : sensitive(var.direct.password)
     engine      = try(var.direct.engine, "mysql")
     db_name     = var.direct.db_name
   } : null
