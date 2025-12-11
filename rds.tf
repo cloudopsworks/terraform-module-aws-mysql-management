@@ -29,7 +29,7 @@ data "aws_rds_cluster" "hoop_db_server" {
 
 data "aws_secretsmanager_secret" "db_password" {
   count = try(var.rds.enabled, false) || try(var.rds.from_secret, false) || try(var.direct.secret_name, "") != "" ? 1 : 0
-  name  = tru(var.direct.secret_name, var.rds.secret_name)
+  name  = try(var.direct.secret_name, var.rds.secret_name)
 }
 
 data "aws_secretsmanager_secret_version" "db_password" {
