@@ -11,7 +11,7 @@ locals {
   hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
   hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "mysql") ? {
     for key, db in var.databases : key => <<EOT
-hoop admin create connection ${local.psql.server_name}-${mysql_database.this[key].name}-ow \
+hoop admin create connection ${local.psql.server_name}-${(try(var.databases[key].create, true) == true ? mysql_database.this[key].name : var.databases[key].name)}-ow \
   --agent ${var.hoop.agent} \
   --type database/mysql \
   -e "HOST=_aws:${aws_secretsmanager_secret.owner[key].name}:host" \
@@ -25,7 +25,7 @@ EOT
   } : {}
   hoop_connection_users = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "mysql") ? {
     for key, role_user in var.users : key => <<EOT
-hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, "") != "" ? mysql_database.this[role_user.db_ref].name : role_user.database_name)}-${role_user.name} \
+hoop admin create connection ${local.psql.server_name}-${(try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) == true ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name)}-${role_user.name} \
   --agent ${var.hoop.agent} \
   --type database/mysql \
   -e "HOST=_aws:${aws_secretsmanager_secret.user[key].name}:host" \

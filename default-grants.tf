@@ -12,7 +12,7 @@
 #     for key, user in var.users : key => user if try(user.grant, "") != "owner"
 #   }
 #   depends_on = [mysql_database.this]
-#   database   = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database   = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   user       = mysql_user.user[each.key].name
 #   privileges = ["CONNECT"]
 # }
