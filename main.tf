@@ -52,7 +52,9 @@ resource "random_password" "owner_initial" {
 }
 
 resource "mysql_database" "this" {
-  for_each              = var.databases
+  for_each = {
+    for key, db in var.databases : key => db if try(db.create, true)
+  }
   name                  = each.value.name
   default_character_set = try(each.value.default_character_set, null)
   default_collation     = try(each.value.default_collation, null)
@@ -80,7 +82,7 @@ resource "mysql_grant" "owner" {
   }
   user     = mysql_user.owner[each.key].user
   host     = mysql_user.owner[each.key].host
-  database = mysql_database.this[each.key].name
+  database = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
   privileges = [
     "ALL PRIVILEGES"
   ]

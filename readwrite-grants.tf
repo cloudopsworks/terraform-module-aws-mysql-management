@@ -11,10 +11,12 @@ resource "mysql_grant" "user_tab_def_priv" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
   }
-  database = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
-  user     = mysql_user.user[each.key].user
-  host     = mysql_user.user[each.key].host
-  table    = "*"
+  database = try(each.value.db_ref, "") != "" ? (
+    try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name
+  ) : each.value.database_name
+  user  = mysql_user.user[each.key].user
+  host  = mysql_user.user[each.key].host
+  table = "*"
   privileges = [
     "SELECT",
     "INSERT",
@@ -31,7 +33,7 @@ resource "mysql_grant" "user_tab_def_priv" {
 #   for_each = {
 #     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
 #   }
-#   database    = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database    = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   role        = postgresql_role.user[each.key].name
 #   owner       = local.admin_role[each.key].admin_role
 #   object_type = "sequence"
@@ -50,7 +52,7 @@ resource "mysql_grant" "user_tab_def_priv" {
 #   for_each = {
 #     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
 #   }
-#   database    = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database    = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   role        = postgresql_role.user[each.key].name
 #   object_type = "sequence"
 #   schema      = try(each.value.schema, "public")
@@ -68,7 +70,7 @@ resource "mysql_grant" "user_tab_def_priv" {
 #   for_each = {
 #     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
 #   }
-#   database    = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database    = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   role        = postgresql_role.user[each.key].name
 #   owner       = local.admin_role[each.key].admin_role
 #   object_type = "function"
@@ -86,7 +88,7 @@ resource "mysql_grant" "user_tab_def_priv" {
 #   for_each = {
 #     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
 #   }
-#   database    = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database    = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   role        = postgresql_role.user[each.key].name
 #   object_type = "function"
 #   schema      = try(each.value.schema, "public")
@@ -103,7 +105,7 @@ resource "mysql_grant" "user_tab_def_priv" {
 #   for_each = {
 #     for key, user in var.users : key => user if try(user.grant, "") == "readwrite"
 #   }
-#   database    = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
+#   database    = try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name
 #   role        = postgresql_role.user[each.key].name
 #   owner       = local.admin_role[each.key].admin_role
 #   object_type = "type"

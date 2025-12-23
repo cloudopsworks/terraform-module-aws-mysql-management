@@ -23,9 +23,11 @@ resource "mysql_grant" "user_all_db" {
   for_each = {
     for key, user in var.users : key => user if try(user.grant, "") == "owner"
   }
-  database = try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name
-  user     = mysql_user.user[each.key].user
-  host     = mysql_user.user[each.key].host
+  database = try(each.value.db_ref, "") != "" ? (
+    try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name
+  ) : each.value.database_name
+  user = mysql_user.user[each.key].user
+  host = mysql_user.user[each.key].host
   privileges = [
     "ALL PRIVILEGES"
   ]
