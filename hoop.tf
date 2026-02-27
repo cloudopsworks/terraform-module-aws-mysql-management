@@ -8,7 +8,7 @@
 #
 
 locals {
-  hoop_tags = length(try(var.hoop.tags, [])) > 0 ? join(" ", [for v in var.hoop.tags : "--tags \"${v}\""]) : ""
+  hoop_tags = length(try(var.hoop.tags, {})) > 0 ? join(" ", [for k, v in var.hoop.tags : "--tags \"${k}=${v}\""]) : ""
   hoop_connection_owners = try(var.hoop.enabled, false) && strcontains(local.psql.engine, "mysql") ? {
     for key, db in var.databases : key => <<EOT
 hoop admin create connection ${local.psql.server_name}-${(try(var.databases[key].create, true) == true ? mysql_database.this[key].name : var.databases[key].name)}-ow \

@@ -13,7 +13,7 @@ module "hoop_owners" {
     if try(db.create_owner, false) && try(var.hoop.enabled, false) && try(var.hoop.agent_id, "") != ""
   }
   source   = "./hoop"
-  name     = format("%s-%s-ow", local.psql.server_name, mysql_database.this[each.key].name)
+  name     = format("%s-%s-ow", local.psql.server_name, (try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name))
   type     = "database"
   subtype  = "mysql"
   agent_id = var.hoop.agent_id
@@ -42,7 +42,7 @@ module "hoop_users" {
   source = "./hoop"
   name = format("%s-%s-%s",
     local.psql.server_name,
-    (try(each.value.db_ref, "") != "" ? mysql_database.this[each.value.db_ref].name : each.value.database_name),
+    (try(each.value.db_ref, "") != "" ? (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name) : each.value.database_name),
   each.value.name)
   type     = "database"
   subtype  = "mysql"
