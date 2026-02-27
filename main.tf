@@ -51,6 +51,14 @@ resource "random_password" "owner_initial" {
   min_lower        = 2
 }
 
+import {
+  for_each = {
+    for k, db in var.databases : k => db if try(db.create, true) && try(db.import, false)
+  }
+  to = mysql_database.this[each.key]
+  id = each.value.name
+}
+
 resource "mysql_database" "this" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create, true)
@@ -58,6 +66,14 @@ resource "mysql_database" "this" {
   name                  = each.value.name
   default_character_set = try(each.value.default_character_set, null)
   default_collation     = try(each.value.default_collation, null)
+}
+
+import {
+  for_each = {
+    for k, db in var.databases : k => db if try(db.import, false) && try(db.create_owner, false)
+  }
+  to = mysql_user.owner[each.key]
+  id = local.owner_list[each.key]
 }
 
 resource "mysql_user" "owner" {

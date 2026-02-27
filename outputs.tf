@@ -7,7 +7,6 @@
 #     Distributed Under Apache v2.0 License
 #
 
-
 output "owners" {
   value = {
     for key, db in var.databases : key => {
