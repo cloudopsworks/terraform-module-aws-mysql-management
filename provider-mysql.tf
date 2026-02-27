@@ -24,7 +24,7 @@ locals {
     host        = data.aws_db_instance.db[0].address
     port        = data.aws_db_instance.db[0].port
     username    = data.aws_db_instance.db[0].master_username
-    engine      = data.aws_db_instance.db[0].engine
+    engine      = try(var.rds.engine, data.aws_rds_cluster.db[0].engine)
     password    = local.from_secret["password"]
     db_name     = data.aws_db_instance.db[0].db_name
   } : {}
@@ -33,7 +33,7 @@ locals {
     host        = data.aws_rds_cluster.db[0].endpoint
     port        = data.aws_rds_cluster.db[0].port
     username    = data.aws_rds_cluster.db[0].master_username
-    engine      = data.aws_rds_cluster.db[0].engine
+    engine      = try(var.rds.engine, data.aws_rds_cluster.db[0].engine, data.aws_db_instance.db[0].engine)
     password    = local.from_secret["password"]
     db_name     = data.aws_rds_cluster.db[0].database_name
   } : {}
