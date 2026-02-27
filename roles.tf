@@ -8,6 +8,14 @@
 #
 
 # Roles have no passwords.
+import {
+  for_each = {
+    for k, role in var.roles : k => role if try(role.import, false)
+  }
+  to = mysql_role.role[each.key]
+  id = each.value.name
+}
+
 resource "mysql_role" "role" {
   for_each = var.roles
   name     = each.value.name

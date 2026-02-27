@@ -45,6 +45,14 @@ resource "random_password" "user_initial" {
   min_lower        = 2
 }
 
+import {
+  for_each = {
+    for k, user in var.users : k => user if try(user.import, false)
+  }
+  to = mysql_user.user[each.key]
+  id = each.value.name
+}
+
 resource "mysql_user" "user" {
   for_each = var.users
   user     = each.value.name
