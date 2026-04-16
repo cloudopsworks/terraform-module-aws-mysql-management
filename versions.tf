@@ -15,5 +15,9 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.35"
     }
+    mysql = {
+      source  = "petoju/mysql"
+      version = "~> 3.0"
+    }
   }
 }

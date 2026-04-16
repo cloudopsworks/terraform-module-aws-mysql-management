@@ -62,17 +62,17 @@ variable "databases" {
 ## Hoop attributes - YAML format
 # hoop:
 #   enabled: false              # (Optional) Whether Hoop is enabled. Defaults to false.
-#   agent: "agent_name"         # (Required if enabled is true) Name of the Hoop agent.
-#   connection_name: "name"     # (Optional) Custom connection name for Hoop.
-#   db_name: "mysql"            # (Optional) Database name for Hoop connection. Defaults to "mysql".
-#   engine: "mysql"            # (Optional) Database engine for Hoop. Defaults to "mysql".
+#   agent_id: "agent-uuid"      # (Required if enabled is true) UUID of the Hoop agent.
+#   community: true             # (Optional) Use community secret prefix (_aws:) vs enterprise (_envs/aws#); default: true
+#   import: false               # (Optional) Import existing Hoop connection; default: false
+#   tags: {key: "value"}        # (Optional) Tags map for Hoop connection.
+#   access_control: ["group"]   # (Optional) Access control groups for Hoop connection.
+#   engine: "mysql"             # (Optional) Database engine for Hoop. Defaults to "mysql".
 #   server_name: "server"       # (Optional) Server name for Hoop.
 #   cluster: false              # (Optional) Whether the server is an Aurora cluster. Defaults to false.
 #   port: 3306                  # (Optional) Port for local tunnel. Defaults to 3306.
 #   username: "localuser"       # (Optional) Username for local tunnel.
 #   password: "localpass"       # (Optional) Password for local tunnel.
-#   tags:                       # (Optional) Tags for the Hoop connection.
-#     - "tag_name=tag_value"
 variable "hoop" {
   description = "Hoop attributes - see docs for example"
   type        = any
@@ -109,12 +109,6 @@ variable "password_rotation_period" {
   default     = 90
 }
 
-# run_hoop: false               # (Optional) Run Hoop command in a null_resource. Defaults to false.
-variable "run_hoop" {
-  description = "Run hoop with agent, be careful with this option, it will run the HOOP command in output in a null_resource"
-  type        = bool
-  default     = false
-}
 
 # secrets_kms_key_id: "alias/key" # (Optional) KMS Key ID to encrypt secrets. Defaults to null.
 variable "secrets_kms_key_id" {
