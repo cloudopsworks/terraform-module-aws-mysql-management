@@ -1,5 +1,1 @@
-{
-  "Project": "my-project",
-  "Owner": "platform-team",
-  "CostCenter": "engineering"
-}
+{{- .tags | toJson }}

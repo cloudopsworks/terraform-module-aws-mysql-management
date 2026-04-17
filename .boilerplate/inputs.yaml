@@ -1,29 +1,86 @@
-# Example inputs for the MySQL management module
-# Copy this file to your working directory and adjust values as needed
+# Module configuration
+# All required and optional variables for terraform-module-aws-mysql-management
+# Do NOT include: is_hub, spoke_def, org, extra_tags (managed by Terragrunt hierarchy)
 
-# MySQL Configuration
-databases:
-  my_app_db:
-    name: my_application
-    default_character_set: utf8mb4
+# users:                                         # (Optional) Map of MySQL users to manage
+#   <user_ref>:
+#     name: "user_name"                          # (Required) Name of the user
+#     grant: "readwrite"                         # (Required) Grant type: "owner", "readwrite", "readonly"
+#     db_ref: "db_ref"                           # (Optional) Reference to a database defined in `databases`; defaults to server default
+#     database_name: "dbname"                    # (Optional) Explicit database name; defaults to server default dbname
+#     host: "%"                                  # (Optional) Source host for the user; default: "%"
+#     tls_option: "NONE"                         # (Optional) TLS option; default: "NONE"
+#     import: false                              # (Optional) Import existing user; default: false
+users: {}
 
-users:
-  app_user:
-    name: my_app_user
-    grant: readwrite
-    db_ref: my_app_db
+# roles:                                         # (Optional) Map of MySQL roles/grants to manage
+#   <role_ref>:
+#     name: "role_name"                          # (Required) Name of the role
+#     db_ref: "db_ref"                           # (Optional) Reference to a database defined in `databases`
+#     database_name: "dbname"                    # (Optional) Explicit database name; defaults to "*"
+#     table_name: "*"                            # (Optional) Table name; default: "*"
+#     grant_option: false                        # (Optional) Grant option; default: false
+#     grants:                                    # (Optional) List of SQL grants; default: ["ALL PRIVILEGES"]
+#       - "SELECT"
+#       - "INSERT"
+#     import: false                              # (Optional) Import existing role; default: false
+roles: {}
 
-rds:
-  enabled: true
-  name: my-rds-instance
-  secret_name: dev/my-app/mysql
-  cluster: false
+# databases:                                     # (Optional) Map of MySQL databases to manage
+#   <db_ref>:
+#     name: "database_name"                      # (Required) Name of the database
+#     create: true                               # (Optional) Create the database; default: true
+#     create_owner: false                        # (Optional) Create dedicated owner user; default: false
+#     owner: "owner_name"                        # (Optional) Owner name; default: <db_name>_ow
+#     default_character_set: "utf8mb4"           # (Optional) Character set; default: "utf8mb4"
+#     default_collation: "utf8mb4_general_ci"    # (Optional) Collation; default: "utf8mb4_general_ci"
+#     host: "%"                                  # (Optional) Source host for owner user; default: "%"
+#     tls_option: "NONE"                         # (Optional) TLS option for owner user; default: "NONE"
+#     import: false                              # (Optional) Import existing database; default: false
+databases: {}
 
-# Optional advanced settings
-# password_rotation_period: 90
-# rotation_lambda_name: ""
-# rotation_duration: "1h"
-# rotate_immediately: false
-# secrets_kms_key_id: null
-# hoop:
-#   enabled: false
+# hoop:                                          # (Optional) Hoop connection output settings
+#   enabled: false                               # (Optional) Enable Hoop; default: false
+#   agent_id: ""                                 # (Required if enabled) UUID of the Hoop agent
+#   community: true                              # (Optional) Community secret prefix (_aws:) vs enterprise (_envs/aws#); default: true
+#   import: false                                # (Optional) Import existing Hoop connection; default: false
+#   tags: {}                                     # (Optional) Tags map for Hoop connection
+#   access_control: []                           # (Optional) Access control groups for Hoop connection
+#   engine: "mysql"                              # (Optional) Database engine; default: "mysql"
+#   server_name: ""                              # (Optional) Server name for Hoop
+#   cluster: false                               # (Optional) Is server an Aurora cluster; default: false
+#   port: 3306                                   # (Optional) Port for local tunnel; default: 3306
+#   username: ""                                 # (Optional) Username for local tunnel
+#   password: ""                                 # (Optional) Password for local tunnel
+hoop: {}
+
+# rds:                                           # (Optional) RDS integration settings
+#   enabled: false                               # (Optional) Enable RDS integration; default: false
+#   name: ""                                     # (Optional) RDS instance or cluster identifier; required if enabled
+#   secret_name: ""                              # (Optional) Secrets Manager secret name for credentials; required if enabled
+#   cluster: false                               # (Optional) Is this an Aurora cluster; default: false
+#   from_secret: false                           # (Optional) Read connection details from secret; default: false
+#   server_name: ""                              # (Optional) Override logical server name
+rds: {}
+
+# direct:                                        # (Optional) Direct connection settings (non-RDS)
+#   secret_name: ""                              # (Optional) Secrets Manager secret name for direct connection
+direct: {}
+
+# password_rotation_period: 90                  # (Optional) Password rotation period in days; default: 90
+password_rotation_period: 90
+
+# secrets_kms_key_id: null                      # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption; default: null
+secrets_kms_key_id: null
+
+# rotation_lambda_name: ""                      # (Optional) Lambda function name for password rotation; default: ""
+rotation_lambda_name: ""
+
+# rotation_duration: "1h"                       # (Optional) Lambda rotation duration; default: "1h"
+rotation_duration: "1h"
+
+# rotate_immediately: false                     # (Optional) Rotate password immediately on apply; default: false
+rotate_immediately: false
+
+# force_reset: false                            # (Optional) Force reset the password; default: false
+force_reset: false
