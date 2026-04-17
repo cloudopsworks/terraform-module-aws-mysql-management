@@ -8,13 +8,16 @@
 #
 
 locals {
+  normalized_owner_list = {
+    for key, db in var.databases : key => replace(local.owner_list[key], "_", "-")
+  }
   owner_name_list = {
     for key, db in var.databases : key => format("%s/%s/%s/%s/%s-rds-credentials",
       local.secret_store_path,
       local.psql.engine,
       local.psql.server_name,
       replace(db.name, "_", "-"),
-      replace(local.owner_list[key], "_", "-")
+      local.normalized_owner_list[key]
     )
     if try(db.create_owner, false)
   }
