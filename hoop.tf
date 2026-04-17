@@ -17,8 +17,8 @@ output "hoop_connections" {
   value = local.hoop_enabled ? merge(
     {
       for key, db in var.databases :
-      "${local.psql.server_name}-${try(var.databases[key].create, true) ? mysql_database.this[key].name : var.databases[key].name}-ow" => {
-        name           = "${local.psql.server_name}-${try(var.databases[key].create, true) ? mysql_database.this[key].name : var.databases[key].name}-ow"
+      "${local.psql.server_name}-${local.normalized_owner_list[key]}" => {
+        name           = "${local.psql.server_name}-${local.normalized_owner_list[key]}"
         agent_id       = var.hoop.agent_id
         type           = "database"
         subtype        = "mysql"
