@@ -17,6 +17,8 @@
 #     host: "%"                  # (Optional) The source host for the user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the user. Defaults to "NONE".
 #     import: false              # (Optional) Whether to import the user if it already exists. Defaults to false.
+#     hoop:                          # (Optional) Hoop settings for the user.
+#       access_control: ["group"]   # (Optional) Access control groups merged with hoop.access_control. Defaults to [].
 variable "users" {
   description = "Users and user attributes - see docs for example"
   type        = any

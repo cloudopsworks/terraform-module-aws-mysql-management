@@ -39,14 +39,17 @@ output "hoop_connections" {
     {
       for key, role_user in var.users :
       "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}" => {
-        name           = "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}"
-        agent_id       = var.hoop.agent_id
-        type           = "database"
-        subtype        = "mysql"
-        tags           = try(var.hoop.tags, {})
-        access_control = toset(try(var.hoop.access_control, []))
-        access_modes   = { connect = "enabled", exec = "enabled", runbooks = "enabled", schema = "enabled" }
-        import         = try(var.hoop.import, false)
+        name     = "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}"
+        agent_id = var.hoop.agent_id
+        type     = "database"
+        subtype  = "mysql"
+        tags     = try(var.hoop.tags, {})
+        access_control = setunion(
+          toset(try(var.hoop.access_control, [])),
+          toset(try(role_user.hoop.access_control, []))
+        )
+        access_modes = { connect = "enabled", exec = "enabled", runbooks = "enabled", schema = "enabled" }
+        import       = try(var.hoop.import, false)
         secrets = {
           "envvar:HOST" = "${local.hoop_secret_prefix}${local.hoop_secret_sep}${aws_secretsmanager_secret.user[key].name}${local.hoop_secret_sep}host"
           "envvar:PORT" = "${local.hoop_secret_prefix}${local.hoop_secret_sep}${aws_secretsmanager_secret.user[key].name}${local.hoop_secret_sep}port"
