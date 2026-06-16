@@ -14,27 +14,32 @@ variables:
     description: "Is this a hub configuration?"
     type: bool
     default: false
+    confirm: true
   - name: tags
     order: 1
     description: "Tags"
     type: map
     default: {}
+    confirm: true
   # End - Generic Boilerplate Variables Setup
   - name: rds_enabled
     order: 2
     description: "Enable Dependency from RDS Instance module, Aurora Cluster or RDS DB Instance"
     type: bool
     default: true
+    confirm: true
   - name: rds_path
     order: 3
     description: "Path to RDS Instance module"
     type: string
     default: "../rds"
+    confirm: true
   - name: rds_cluster
     order: 4
     description: "Is the RDS dependency an Aurora Cluster?"
     type: bool
     default: true
+    confirm: true
 
 hooks:
   after:
