@@ -9,7 +9,7 @@
 
 locals {
   normalized_owner_list = {
-    for key, db in var.databases : key => replace(local.owner_list[key], "_", "-")
+    for key, db in var.databases : key => replace(local.owner_list[key], "_", "-") if try(db.create_owner, false)
   }
   owner_name_list = {
     for key, db in var.databases : key => format("%s/%s/%s/%s/%s-rds-credentials",
