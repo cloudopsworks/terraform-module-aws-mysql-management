@@ -17,8 +17,8 @@
 #     host: "%"                  # (Optional) The source host for the user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the user. Defaults to "NONE".
 #     import: false              # (Optional) Whether to import the user if it already exists. Defaults to false.
-#     hoop:                          # (Optional) Hoop settings for the user.
-#       access_control: ["group"]   # (Optional) Access control groups merged with hoop.access_control. Defaults to [].
+#     hoop:                      # (Optional) Per-user Hoop settings.
+#       access_control: ["group"] # (Optional) Access control groups merged with hoop.access_control. Defaults to [].
 variable "users" {
   description = "Users and user attributes - see docs for example"
   type        = any
@@ -70,11 +70,13 @@ variable "databases" {
 #   tags: {key: "value"}        # (Optional) Tags map for Hoop connection.
 #   access_control: ["group"]   # (Optional) Access control groups for Hoop connection.
 #   engine: "mysql"             # (Optional) Database engine for Hoop. Defaults to "mysql".
-#   server_name: "server"       # (Optional) Server name for Hoop.
+#   server_name: "server"       # (Required if connection_name is set) RDS instance or Aurora cluster identifier used to resolve the endpoint.
 #   cluster: false              # (Optional) Whether the server is an Aurora cluster. Defaults to false.
-#   port: 3306                  # (Optional) Port for local tunnel. Defaults to 3306.
-#   username: "localuser"       # (Optional) Username for local tunnel.
-#   password: "localpass"       # (Optional) Password for local tunnel.
+#   connection_name: "conn"     # (Optional) Existing Hoop connection name used to open a local tunnel for the MySQL provider. Defaults to "" (no tunnel).
+#   db_name: "mysql"            # (Required if connection_name is set) Database name used by the MySQL provider through the tunnel.
+#   port: 3306                  # (Optional) Local tunnel port. Defaults to 3306.
+#   username: "localuser"       # (Optional) Username for local tunnel. Defaults to "noop".
+#   password: "localpass"       # (Optional) Password for local tunnel. Defaults to "noop".
 variable "hoop" {
   description = "Hoop attributes - see docs for example"
   type        = any
@@ -145,4 +147,11 @@ variable "force_reset" {
   description = "Force Reset the password"
   type        = bool
   default     = false
+}
+
+# specials_in_password: true # (Optional) Use special characters (=_-+@~#) in generated passwords. Possible values: true, false. Defaults to true.
+variable "specials_in_password" {
+  description = "(optional) Use special characters in generated owner/user passwords. When false, generated passwords are alphanumeric only. Defaults to true"
+  type        = bool
+  default     = true
 }

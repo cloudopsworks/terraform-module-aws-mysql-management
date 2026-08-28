@@ -8,6 +8,7 @@
 #
 
 output "owners" {
+  description = "Map of database refs to their generated owner user, keyed by the `databases` map key. Each entry exposes the owner username and the AWS Secrets Manager secret holding its credentials. Only databases with `create_owner = true` are present."
   value = {
     for key, db in var.databases : key => {
       username               = local.owner_list[key]
@@ -19,6 +20,7 @@ output "owners" {
 }
 
 output "users" {
+  description = "Map of user refs to their managed MySQL user, keyed by the `users` map key. Each entry exposes the username and the AWS Secrets Manager secret holding its credentials."
   value = {
     for key, user in var.users : key => {
       username               = user.name

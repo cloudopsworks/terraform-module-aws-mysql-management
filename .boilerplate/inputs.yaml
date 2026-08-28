@@ -11,6 +11,8 @@
 #     host: "%"                                  # (Optional) Source host for the user; default: "%"
 #     tls_option: "NONE"                         # (Optional) TLS option; default: "NONE"
 #     import: false                              # (Optional) Import existing user; default: false
+#     hoop:                                      # (Optional) Per-user Hoop settings
+#       access_control: []                       # (Optional) Access control groups merged with hoop.access_control; default: []
 users: {}
 
 # roles:                                         # (Optional) Map of MySQL roles/grants to manage
@@ -47,11 +49,13 @@ databases: {}
 #   tags: {}                                     # (Optional) Tags map for Hoop connection
 #   access_control: []                           # (Optional) Access control groups for Hoop connection
 #   engine: "mysql"                              # (Optional) Database engine; default: "mysql"
-#   server_name: ""                              # (Optional) Server name for Hoop
+#   server_name: ""                              # (Required if connection_name set) RDS instance or Aurora cluster identifier used to resolve the endpoint
 #   cluster: false                               # (Optional) Is server an Aurora cluster; default: false
-#   port: 3306                                   # (Optional) Port for local tunnel; default: 3306
-#   username: ""                                 # (Optional) Username for local tunnel
-#   password: ""                                 # (Optional) Password for local tunnel
+#   connection_name: ""                          # (Optional) Existing Hoop connection name used to open a local tunnel for the MySQL provider; default: "" (no tunnel)
+#   db_name: "mysql"                             # (Required if connection_name set) Database name used by the MySQL provider through the tunnel
+#   port: 3306                                   # (Optional) Local tunnel port; default: 3306
+#   username: ""                                 # (Optional) Username for local tunnel; default: "noop"
+#   password: ""                                 # (Optional) Password for local tunnel; default: "noop"
 hoop: {}
 
 # rds:                                           # (Optional) RDS integration settings
@@ -84,3 +88,8 @@ rotate_immediately: false
 
 # force_reset: false                            # (Optional) Force reset the password; default: false
 force_reset: false
+
+# specials_in_password: true                    # (Optional) Use special characters (=_-+@~#) in generated owner/user passwords.
+#                                               #            Set to false for alphanumeric-only passwords (clients or tooling that
+#                                               #            cannot handle specials in connection strings); default: true
+specials_in_password: true

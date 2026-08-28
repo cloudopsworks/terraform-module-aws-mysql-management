@@ -19,10 +19,10 @@ resource "random_password" "user" {
     for k, user in var.users : k => user if var.rotation_lambda_name == ""
   }
   length           = 25
-  special          = true
+  special          = var.specials_in_password
   override_special = "=_-+@~#"
   min_upper        = 2
-  min_special      = 2
+  min_special      = var.specials_in_password ? 2 : 0
   min_numeric      = 2
   min_lower        = 2
   lifecycle {
@@ -37,10 +37,10 @@ resource "random_password" "user_initial" {
     for k, user in var.users : k => user if var.rotation_lambda_name != ""
   }
   length           = 25
-  special          = true
+  special          = var.specials_in_password
   override_special = "=_-+@~#"
   min_upper        = 2
-  min_special      = 2
+  min_special      = var.specials_in_password ? 2 : 0
   min_numeric      = 2
   min_lower        = 2
 }

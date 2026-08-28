@@ -25,10 +25,10 @@ resource "random_password" "owner" {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name == ""
   }
   length           = 25
-  special          = true
+  special          = var.specials_in_password
   override_special = "=_-+@~#"
   min_upper        = 2
-  min_special      = 2
+  min_special      = var.specials_in_password ? 2 : 0
   min_numeric      = 2
   min_lower        = 2
   lifecycle {
@@ -43,10 +43,10 @@ resource "random_password" "owner_initial" {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
   }
   length           = 25
-  special          = true
+  special          = var.specials_in_password
   override_special = "=_-+~#"
   min_upper        = 2
-  min_special      = 2
+  min_special      = var.specials_in_password ? 2 : 0
   min_numeric      = 2
   min_lower        = 2
 }
