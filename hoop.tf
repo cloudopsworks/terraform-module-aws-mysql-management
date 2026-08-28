@@ -14,6 +14,7 @@ locals {
 }
 
 output "hoop_connections" {
+  description = "Hoop.dev connection definitions for every managed owner and user, keyed by connection name. Null when `hoop.enabled` is false or the resolved engine is not MySQL."
   value = local.hoop_enabled ? merge(
     {
       for key, db in var.databases :
