@@ -234,10 +234,6 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
-terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8"
-}
-
 dependency "database" {
   config_path                             = "../rds"
   mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
@@ -245,6 +241,10 @@ dependency "database" {
     rds_cluster_identifier          = "rds-cluster-identifier"
     cluster_secrets_credentials_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:rds-cluster-credentials-arn"
   }
+}
+
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
 }
 
 inputs = {
@@ -392,7 +392,7 @@ passwords on the next apply.
 
 1) terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -433,7 +433,7 @@ cd mysql-management/dev
 ### 2. Create `terragrunt.hcl`
 ```hcl
 terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8"
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
 }
 
 include {
@@ -581,7 +581,7 @@ This creates:
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -617,7 +617,7 @@ rds:
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -673,7 +673,7 @@ rotation_lambda_name: mysql-rotator-staging
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -727,7 +727,7 @@ specials_in_password: false     # legacy JDBC clients here cannot handle special
 
 Hub terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("hub-inputs.yaml")
 ```
 
@@ -759,7 +759,7 @@ rds:
 
 Spoke terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.8" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
 inputs = read_yaml("spoke-inputs.yaml")
 ```
 
