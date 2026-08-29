@@ -44,7 +44,7 @@ data "aws_caller_identity" "current" {}
 
 import {
   for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false)
+    for key, db in var.databases : key => db if try(db.create_owner, false) && try(db.import, false)
   }
   to = aws_secretsmanager_secret.owner[each.key]
   id = "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:${local.owner_name_list[each.key]}"

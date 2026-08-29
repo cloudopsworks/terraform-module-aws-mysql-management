@@ -165,9 +165,11 @@ locals {
 }
 
 import {
-  for_each = var.users
-  to       = aws_secretsmanager_secret.user[each.key]
-  id       = "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:${local.user_names_list[each.key]}"
+  for_each = {
+    for k, user in var.users : k => user if try(user.import, false)
+  }
+  to = aws_secretsmanager_secret.user[each.key]
+  id = "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:${local.user_names_list[each.key]}"
 }
 
 resource "aws_secretsmanager_secret" "user" {
