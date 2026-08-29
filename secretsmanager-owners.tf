@@ -21,6 +21,18 @@ locals {
     )
     if try(db.create_owner, false)
   }
+  # Effective Secrets Manager settings for each owner secret: per-database
+  # `secret` block wins, otherwise the module-wide secrets_* variables apply.
+  owner_secret_settings = {
+    for key, db in var.databases : key => {
+      recovery_window = try(db.secret.recovery_window, null) != null ? db.secret.recovery_window : var.secrets_recovery_window
+      replica_region  = try(db.secret.replica.region, null) != null ? db.secret.replica.region : var.secrets_replica_region
+      replica_kms_key_id = (try(db.secret.replica.kms_key_id, null) != null ?
+        db.secret.replica.kms_key_id : var.secrets_replica_kms_key_id
+      )
+    }
+    if try(db.create_owner, false)
+  }
 }
 # # Secrets saving
 data "aws_lambda_function" "rotation_function" {
@@ -33,9 +45,17 @@ resource "aws_secretsmanager_secret" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  name        = local.owner_name_list[each.key]
-  description = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name}"
-  kms_key_id  = var.secrets_kms_key_id
+  name                    = local.owner_name_list[each.key]
+  description             = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name}"
+  kms_key_id              = var.secrets_kms_key_id
+  recovery_window_in_days = local.owner_secret_settings[each.key].recovery_window
+  dynamic "replica" {
+    for_each = local.owner_secret_settings[each.key].replica_region != null ? [local.owner_secret_settings[each.key]] : []
+    content {
+      kms_key_id = replica.value.replica_kms_key_id
+      region     = replica.value.replica_region
+    }
+  }
   tags = merge(local.all_tags, {
     "rds-username"        = local.owner_list[each.key]
     "rds-datatabase-name" = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
