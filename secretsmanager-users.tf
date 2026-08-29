@@ -164,6 +164,12 @@ locals {
   }
 }
 
+import {
+  for_each = var.users
+  to       = aws_secretsmanager_secret.user
+  id       = local.user_names_list[each.key]
+}
+
 resource "aws_secretsmanager_secret" "user" {
   for_each                = var.users
   name                    = local.user_names_list[each.key]
