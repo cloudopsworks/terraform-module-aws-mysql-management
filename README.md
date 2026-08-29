@@ -119,7 +119,7 @@ everything is optional and defaulted unless marked `(Required)`:
 #     database_name: "dbname"                    # (Optional) Explicit database name; defaults to server default dbname
 #     host: "%"                                  # (Optional) Source host for the user; default: "%"
 #     tls_option: "NONE"                         # (Optional) TLS option; default: "NONE"
-#     import: false                              # (Optional) Import existing user; default: false
+#     import: false                              # (Optional) Import existing user and its Secrets Manager secret; default: false
 #     connection_string_type: ""                 # (Optional) Emit a ready-to-use connection string in the secret payload.
 #                                                #            Values: "jdbc", "jdbc_plain", "dotnet", "odbc", "gomysql"; default: "" (none)
 #     secret:                                    # (Optional) Per-user Secrets Manager overrides; default: {} (module-wide secrets_* apply)
@@ -157,7 +157,7 @@ roles: {}
 #     default_collation: "utf8mb4_general_ci"    # (Optional) Collation; default: "utf8mb4_general_ci"
 #     host: "%"                                  # (Optional) Source host for owner user; default: "%"
 #     tls_option: "NONE"                         # (Optional) TLS option for owner user; default: "NONE"
-#     import: false                              # (Optional) Import existing database; default: false
+#     import: false                              # (Optional) Import existing database, owner user and owner secret; default: false
 #     secret:                                    # (Optional) Secrets Manager overrides for the owner secret; only used when
 #                                                #            create_owner is true; default: {} (module-wide secrets_* apply)
 #       recovery_window: 30                      # (Optional) Days before permanent deletion. 0 = delete immediately, otherwise 7-30;
@@ -343,7 +343,7 @@ databases:                           # (Optional) map of database refs
     default_collation: "utf8mb4_general_ci" # (Optional) Defaults to utf8mb4_general_ci
     host: "%"                       # (Optional) Owner host. Defaults to "%"
     tls_option: "NONE"               # (Optional) Owner TLS option. Provider-specific. Defaults to "NONE"
-    import: false                    # (Optional) Import existing DB instead of creating. Defaults to false
+    import: false                    # (Optional) Import existing DB, owner user and owner secret instead of creating. Defaults to false
     secret:                          # (Optional) Secrets Manager overrides for the owner secret. Only read when
                                      #            create_owner is true. Defaults to {}
       recovery_window: 30            # (Optional) Days before permanent deletion. 0 = delete immediately, else 7-30.
@@ -361,7 +361,7 @@ users:                               # (Optional) map of user refs
     database_name: "dbname"         # (Optional) Explicit DB name (alt to db_ref)
     host: "%"                       # (Optional) User host. Defaults to "%"
     tls_option: "NONE"               # (Optional) TLS option for user. Defaults to "NONE"
-    import: false                    # (Optional) Import existing user. Defaults to false
+    import: false                    # (Optional) Import existing user and its Secrets Manager secret. Defaults to false
     connection_string_type: "jdbc"  # (Optional) Emit a ready-to-use connection string in the secret payload.
                                      #            jdbc|jdbc_plain|dotnet|odbc|gomysql. Defaults to "" (none)
     secret:                          # (Optional) Secrets Manager overrides for this user's secret. Defaults to {}
@@ -977,6 +977,7 @@ Available targets:
 | [random_password.user_initial](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [time_rotating.owner](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/rotating) | resource |
 | [time_rotating.user](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/rotating) | resource |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_db_instance.db](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_db_instance.hoop_db_server](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_lambda_function.rotation_function](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/lambda_function) | data source |

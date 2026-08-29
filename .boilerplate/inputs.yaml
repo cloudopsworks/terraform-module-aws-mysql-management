@@ -10,7 +10,7 @@
 #     database_name: "dbname"                    # (Optional) Explicit database name; defaults to server default dbname
 #     host: "%"                                  # (Optional) Source host for the user; default: "%"
 #     tls_option: "NONE"                         # (Optional) TLS option; default: "NONE"
-#     import: false                              # (Optional) Import existing user; default: false
+#     import: false                              # (Optional) Import existing user and its Secrets Manager secret; default: false
 #     connection_string_type: ""                 # (Optional) Emit a ready-to-use connection string in the secret payload.
 #                                                #            Values: "jdbc", "jdbc_plain", "dotnet", "odbc", "gomysql"; default: "" (none)
 #     secret:                                    # (Optional) Per-user Secrets Manager overrides; default: {} (module-wide secrets_* apply)
@@ -48,7 +48,7 @@ roles: {}
 #     default_collation: "utf8mb4_general_ci"    # (Optional) Collation; default: "utf8mb4_general_ci"
 #     host: "%"                                  # (Optional) Source host for owner user; default: "%"
 #     tls_option: "NONE"                         # (Optional) TLS option for owner user; default: "NONE"
-#     import: false                              # (Optional) Import existing database; default: false
+#     import: false                              # (Optional) Import existing database, owner user and owner secret; default: false
 #     secret:                                    # (Optional) Secrets Manager overrides for the owner secret; only used when
 #                                                #            create_owner is true; default: {} (module-wide secrets_* apply)
 #       recovery_window: 30                      # (Optional) Days before permanent deletion. 0 = delete immediately, otherwise 7-30;

@@ -16,7 +16,7 @@
 #     database_name: "dbname"    # (Optional) Explicit name of the database this user is associated with. Defaults to server's default dbname.
 #     host: "%"                  # (Optional) The source host for the user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the user. Defaults to "NONE".
-#     import: false              # (Optional) Whether to import the user if it already exists. Defaults to false.
+#     import: false              # (Optional) Whether to import the user and its Secrets Manager secret if they already exist. Defaults to false.
 #     connection_string_type: "jdbc" # (Optional) Emit a ready-to-use connection string in the secret payload.
 #                                #            Possible values: jdbc, jdbc_plain, dotnet, odbc, gomysql. Defaults to "" (no connection string).
 #     secret:                    # (Optional) Per-user AWS Secrets Manager overrides. Defaults to {} (module-wide secrets_* variables apply).
@@ -63,7 +63,8 @@ variable "roles" {
 #     default_collation: "utf8mb4_general_ci" # (Optional) Collation of the database. Defaults to "utf8mb4_general_ci".
 #     host: "%"                  # (Optional) The source host for the owner user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the owner user. Defaults to "NONE".
-#     import: false              # (Optional) Whether to import the database if it already exists. Defaults to false.
+#     import: false              # (Optional) Whether to import the database, its owner user and the owner Secrets Manager secret
+#                                #            if they already exist. Defaults to false.
 #     secret:                    # (Optional) Per-database AWS Secrets Manager overrides for the owner secret. Only used when
 #                                #            create_owner is true. Defaults to {} (module-wide secrets_* variables apply).
 #       recovery_window: 30      # (Optional) Recovery window in days before permanent deletion. Possible values: 0 (delete immediately) or 7-30.
