@@ -166,7 +166,7 @@ locals {
 
 import {
   for_each = var.users
-  to       = aws_secretsmanager_secret.user
+  to       = aws_secretsmanager_secret.user[each.key]
   id       = local.user_names_list[each.key]
 }
 

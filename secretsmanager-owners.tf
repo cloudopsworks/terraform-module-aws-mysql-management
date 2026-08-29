@@ -44,7 +44,7 @@ import {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  to = aws_secretsmanager_secret.owner
+  to = aws_secretsmanager_secret.owner[each.key]
   id = local.owner_name_list[each.key]
 }
 
