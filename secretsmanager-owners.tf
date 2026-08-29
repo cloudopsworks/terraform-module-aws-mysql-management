@@ -40,12 +40,14 @@ data "aws_lambda_function" "rotation_function" {
   function_name = var.rotation_lambda_name
 }
 
+data "aws_caller_identity" "current" {}
+
 import {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
   to = aws_secretsmanager_secret.owner[each.key]
-  id = local.owner_name_list[each.key]
+  id = "arn:aws:secretsmanager:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:secret:${local.owner_name_list[each.key]}"
 }
 
 ## DB OWNER
