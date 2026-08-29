@@ -17,6 +17,15 @@
 #     host: "%"                  # (Optional) The source host for the user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the user. Defaults to "NONE".
 #     import: false              # (Optional) Whether to import the user if it already exists. Defaults to false.
+#     connection_string_type: "jdbc" # (Optional) Emit a ready-to-use connection string in the secret payload.
+#                                #            Possible values: jdbc, jdbc_plain, dotnet, odbc, gomysql. Defaults to "" (no connection string).
+#     secret:                    # (Optional) Per-user AWS Secrets Manager overrides. Defaults to {} (module-wide secrets_* variables apply).
+#       recovery_window: 30      # (Optional) Recovery window in days before permanent deletion. Possible values: 0 (delete immediately) or 7-30.
+#                                #            Defaults to var.secrets_recovery_window.
+#       replica:                 # (Optional) Cross-region replica for this secret. Defaults to {} (replica created only if a region resolves).
+#         region: "us-west-2"    # (Optional) Region to replicate the secret into. Defaults to var.secrets_replica_region.
+#         kms_key_id: "alias/k"  # (Optional) KMS key in the replica region, ARN or alias. Defaults to var.secrets_replica_kms_key_id,
+#                                #            or the AWS managed key when both are null.
 #     hoop:                      # (Optional) Per-user Hoop settings.
 #       access_control: ["group"] # (Optional) Access control groups merged with hoop.access_control. Defaults to [].
 variable "users" {
@@ -55,6 +64,14 @@ variable "roles" {
 #     host: "%"                  # (Optional) The source host for the owner user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the owner user. Defaults to "NONE".
 #     import: false              # (Optional) Whether to import the database if it already exists. Defaults to false.
+#     secret:                    # (Optional) Per-database AWS Secrets Manager overrides for the owner secret. Only used when
+#                                #            create_owner is true. Defaults to {} (module-wide secrets_* variables apply).
+#       recovery_window: 30      # (Optional) Recovery window in days before permanent deletion. Possible values: 0 (delete immediately) or 7-30.
+#                                #            Defaults to var.secrets_recovery_window.
+#       replica:                 # (Optional) Cross-region replica for this secret. Defaults to {} (replica created only if a region resolves).
+#         region: "us-west-2"    # (Optional) Region to replicate the secret into. Defaults to var.secrets_replica_region.
+#         kms_key_id: "alias/k"  # (Optional) KMS key in the replica region, ARN or alias. Defaults to var.secrets_replica_kms_key_id,
+#                                #            or the AWS managed key when both are null.
 variable "databases" {
   description = "Databases and database attributes - see docs for example"
   type        = any
@@ -154,4 +171,30 @@ variable "specials_in_password" {
   description = "(optional) Use special characters in generated owner/user passwords. When false, generated passwords are alphanumeric only. Defaults to true"
   type        = bool
   default     = true
+}
+
+# secrets_recovery_window: 30 # (Optional) Default recovery window in days before a deleted secret is permanently removed.
+#                             #            Possible values: 0 (delete immediately, no recovery) or 7-30. Defaults to 30.
+#                             #            Overridable per entity with databases.<ref>.secret.recovery_window and users.<ref>.secret.recovery_window.
+variable "secrets_recovery_window" {
+  description = "(optional) Default recovery window in days before a deleted secret is permanently removed. Use 0 to delete immediately, otherwise 7-30. Defaults to 30"
+  type        = number
+  default     = 30
+  nullable    = false
+}
+
+# secrets_replica_region: "us-west-2" # (Optional) Region to replicate every managed secret into. When null no replica is created
+#                                     #            unless a per-entity secret.replica.region is set. Defaults to null.
+variable "secrets_replica_region" {
+  description = "(optional) Region to replicate every managed secret into. When null, no replica is created unless set per entity. Defaults to null"
+  type        = string
+  default     = null
+}
+
+# secrets_replica_kms_key_id: "alias/key" # (Optional) KMS Key ID in the replica region used to encrypt replicated secrets, ARN or alias.
+#                                         #            Must live in secrets_replica_region. When null the AWS managed key is used. Defaults to null.
+variable "secrets_replica_kms_key_id" {
+  description = "(optional) KMS Key ID used to encrypt replicated secrets, can be ARN or KMS Alias. Must reside in the replica region. Defaults to null (AWS managed key)"
+  type        = string
+  default     = null
 }

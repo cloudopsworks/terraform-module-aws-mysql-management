@@ -10,10 +10,10 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
-| <a name="provider_mysql"></a> [mysql](#provider\_mysql) | ~> 3.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | n/a |
-| <a name="provider_time"></a> [time](#provider\_time) | n/a |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.62.0 |
+| <a name="provider_mysql"></a> [mysql](#provider\_mysql) | 3.0.94 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.14.1 |
 
 ## Modules
 
@@ -81,6 +81,9 @@
 | <a name="input_rotation_duration"></a> [rotation\_duration](#input\_rotation\_duration) | Duration of the lambda function to rotate the password | `string` | `"1h"` | no |
 | <a name="input_rotation_lambda_name"></a> [rotation\_lambda\_name](#input\_rotation\_lambda\_name) | Name of the lambda function to rotate the password | `string` | `""` | no |
 | <a name="input_secrets_kms_key_id"></a> [secrets\_kms\_key\_id](#input\_secrets\_kms\_key\_id) | (optional) KMS Key ID to use to encrypt data in this secret, can be ARN or KMS Alias | `string` | `null` | no |
+| <a name="input_secrets_recovery_window"></a> [secrets\_recovery\_window](#input\_secrets\_recovery\_window) | (optional) Default recovery window in days before a deleted secret is permanently removed. Use 0 to delete immediately, otherwise 7-30. Defaults to 30 | `number` | `30` | no |
+| <a name="input_secrets_replica_kms_key_id"></a> [secrets\_replica\_kms\_key\_id](#input\_secrets\_replica\_kms\_key\_id) | (optional) KMS Key ID used to encrypt replicated secrets, can be ARN or KMS Alias. Must reside in the replica region. Defaults to null (AWS managed key) | `string` | `null` | no |
+| <a name="input_secrets_replica_region"></a> [secrets\_replica\_region](#input\_secrets\_replica\_region) | (optional) Region to replicate every managed secret into. When null, no replica is created unless set per entity. Defaults to null | `string` | `null` | no |
 | <a name="input_specials_in_password"></a> [specials\_in\_password](#input\_specials\_in\_password) | (optional) Use special characters in generated owner/user passwords. When false, generated passwords are alphanumeric only. Defaults to true | `bool` | `true` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 | <a name="input_users"></a> [users](#input\_users) | Users and user attributes - see docs for example | `any` | `{}` | no |
