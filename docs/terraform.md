@@ -5,6 +5,8 @@
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 | <a name="requirement_mysql"></a> [mysql](#requirement\_mysql) | ~> 3.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.4 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.13 |
 
 ## Providers
 
@@ -12,8 +14,8 @@
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
 | <a name="provider_mysql"></a> [mysql](#provider\_mysql) | ~> 3.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | n/a |
-| <a name="provider_time"></a> [time](#provider\_time) | n/a |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.4 |
+| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13 |
 
 ## Modules
 
