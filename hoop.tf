@@ -39,8 +39,8 @@ output "hoop_connections" {
     },
     {
       for key, role_user in var.users :
-      "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}" => {
-        name     = "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? mysql_database.this[role_user.db_ref].name : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}"
+      "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? local.database_names[role_user.db_ref] : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}" => {
+        name     = "${local.psql.server_name}-${try(role_user.db_ref, "") != "" ? (try(var.databases[role_user.db_ref].create, true) ? local.database_names[role_user.db_ref] : var.databases[role_user.db_ref].name) : role_user.database_name}-${role_user.name}"
         agent_id = var.hoop.agent_id
         type     = "database"
         subtype  = "mysql"

@@ -11,6 +11,44 @@ locals {
   owner_list = {
     for key, db in var.databases : key => "${db.name}_ow" if try(db.create_owner, false)
   }
+  owner_users = {
+    for key, db in var.databases : key => {
+      name              = local.owner_list[key]
+      host              = try(db.host, null)
+      tls_option        = try(db.tls_option, null)
+      import            = try(db.import, false)
+      manage_grants     = false
+      generate_password = false
+      password = var.rotation_lambda_name == "" ? random_password.owner[key].result : (
+        try(length(data.aws_secretsmanager_secret_versions.owner_rotated[key].versions), 0) > 0 && !var.force_reset ?
+        jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[key].secret_string)["password"] :
+        random_password.owner_initial[key].result
+      )
+    } if try(db.create_owner, false)
+  }
+  mysql_users = {
+    for key, user in var.users : key => merge(user, {
+      resource_group    = "user"
+      manage_grants     = false
+      generate_password = false
+      password = var.rotation_lambda_name == "" ? random_password.user[key].result : (
+        try(length(data.aws_secretsmanager_secret_versions.user_rotated[key].versions), 0) > 0 && !var.force_reset ?
+        jsondecode(data.aws_secretsmanager_secret_version.user_rotated[key].secret_string)["password"] :
+        random_password.user_initial[key].result
+      )
+    })
+  }
+  mysql_databases = {
+    for key, db in var.databases : key => merge(db, {
+      default_character_set = try(db.default_character_set, null)
+      default_collation     = try(db.default_collation, null)
+    })
+  }
+  database_names = {
+    for key, db in var.databases : key => (
+      try(db.create, true) ? module.db.databases[key].name : db.name
+    )
+  }
 }
 
 resource "time_rotating" "owner" {
@@ -51,54 +89,13 @@ resource "random_password" "owner_initial" {
   min_lower        = 2
 }
 
-import {
-  for_each = {
-    for k, db in var.databases : k => db if try(db.create, true) && try(db.import, false)
-  }
-  to = mysql_database.this[each.key]
-  id = each.value.name
-}
-
-resource "mysql_database" "this" {
-  for_each = {
-    for key, db in var.databases : key => db if try(db.create, true)
-  }
-  name                  = each.value.name
-  default_character_set = try(each.value.default_character_set, null)
-  default_collation     = try(each.value.default_collation, null)
-}
-
-import {
-  for_each = {
-    for k, db in var.databases : k => db if try(db.import, false) && try(db.create_owner, false)
-  }
-  to = mysql_user.owner[each.key]
-  id = local.owner_list[each.key]
-}
-
-resource "mysql_user" "owner" {
-  depends_on = [mysql_database.this]
-  for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false)
-  }
-  user = local.owner_list[each.key]
-  host = try(each.value.host, null)
-  plaintext_password = var.rotation_lambda_name == "" ? random_password.owner[each.key].result : (
-    try(length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
-    jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
-    random_password.owner_initial[each.key].result
-  )
-  tls_option = try(each.value.tls_option, null)
-}
-
 resource "mysql_grant" "owner" {
-  depends_on = [mysql_user.owner]
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
-  user     = mysql_user.owner[each.key].user
-  host     = mysql_user.owner[each.key].host
-  database = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
+  user     = module.db.owner_usernames[each.key]
+  host     = coalesce(try(each.value.host, null), "%")
+  database = local.database_names[each.key]
   privileges = [
     "ALL PRIVILEGES"
   ]

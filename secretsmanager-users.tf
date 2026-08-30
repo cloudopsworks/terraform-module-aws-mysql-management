@@ -46,7 +46,7 @@ locals {
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
-      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? mysql_database.this[user.db_ref].name : var.databases[user.db_ref].name) : user.database_name
+      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
       engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
@@ -115,7 +115,7 @@ locals {
         try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
         data.aws_db_instance.hoop_db_server[0].port
       ) : local.psql.port
-      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? mysql_database.this[user.db_ref].name : var.databases[user.db_ref].name) : user.database_name
+      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
       engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
@@ -188,7 +188,7 @@ resource "aws_secretsmanager_secret" "user" {
   tags = merge(local.all_tags, {
     "rds-username" = each.value.name
     "rds-datatabase-name" = (try(each.value.db_ref, "") != "" ?
-      (try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name)
+      (try(var.databases[each.value.db_ref].create, true) == true ? local.database_names[each.value.db_ref] : var.databases[each.value.db_ref].name)
       : each.value.database_name
     )
     "rds-server-name" = local.psql.server_name
