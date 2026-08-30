@@ -37,6 +37,26 @@ introduction: |-
 
   The module supports both RDS instances and Aurora clusters, with optional direct connection capabilities for existing database infrastructures.
 
+  ## Upgrading from v1.4.1
+
+  Version 1.5 delegates MySQL database and user resources to
+  `terraform-module-mysql-management` v2.3 while AWS Secrets Manager, password rotation,
+  grants, roles, RDS discovery, and Hoop integration remain in this module. Declarative
+  `moved` blocks preserve every existing `for_each` instance:
+
+  | Previous address | New address |
+  |---|---|
+  | `mysql_database.this` | `module.db.mysql_database.this` |
+  | `mysql_user.owner` | `module.db.mysql_user.owner` |
+  | `mysql_user.user` | `module.db.mysql_user.user` |
+
+  No manual `tofu state mv` or `terraform state mv` commands are required. Back up state,
+  upgrade the module reference, and review the first plan. The move should not add, destroy,
+  or rotate these resources; AWS-owned password and grant resource addresses are unchanged.
+  Keep the `moved` blocks in place so callers can upgrade from older releases later.
+
+  This release requires OpenTofu or Terraform 1.7 or newer.
+
 # How to use this project
 usage: |-
   ## Usage with Terragrunt
@@ -255,7 +275,7 @@ usage: |-
   }
 
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0"
   }
 
   inputs = {
@@ -427,7 +447,7 @@ usage: |-
 
   1) terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("inputs.yaml")
   ```
 
@@ -461,7 +481,7 @@ examples: |-
 
   terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("inputs.yaml")
   ```
 
@@ -497,7 +517,7 @@ examples: |-
 
   terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("inputs.yaml")
   ```
 
@@ -553,7 +573,7 @@ examples: |-
 
   terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("inputs.yaml")
   ```
 
@@ -607,7 +627,7 @@ examples: |-
 
   Hub terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("hub-inputs.yaml")
   ```
 
@@ -639,7 +659,7 @@ examples: |-
 
   Spoke terragrunt.hcl
   ```hcl
-  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+  terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
   inputs = read_yaml("spoke-inputs.yaml")
   ```
 
@@ -744,7 +764,7 @@ quickstart: |-
   ### 2. Create `terragrunt.hcl`
   ```hcl
   terraform {
-    source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0"
   }
 
   include {

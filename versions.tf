@@ -8,7 +8,7 @@
 #
 
 terraform {
-  required_version = ">= 1.3"
+  required_version = ">= 1.7"
   # Complete with required providers for the module
   required_providers {
     aws = {
@@ -18,6 +18,14 @@ terraform {
     mysql = {
       source  = "petoju/mysql"
       version = "~> 3.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.4"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13"
     }
   }
 }

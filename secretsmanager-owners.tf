@@ -56,7 +56,7 @@ resource "aws_secretsmanager_secret" "owner" {
     for key, db in var.databases : key => db if try(db.create_owner, false)
   }
   name                    = local.owner_name_list[each.key]
-  description             = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name}"
+  description             = "RDS Owner credentials - ${local.owner_list[each.key]} - ${local.psql.engine} - ${local.psql.server_name} - ${try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name}"
   kms_key_id              = var.secrets_kms_key_id
   recovery_window_in_days = local.owner_secret_settings[each.key].recovery_window
   dynamic "replica" {
@@ -68,7 +68,7 @@ resource "aws_secretsmanager_secret" "owner" {
   }
   tags = merge(local.all_tags, {
     "rds-username"        = local.owner_list[each.key]
-    "rds-datatabase-name" = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
+    "rds-datatabase-name" = try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name
     "rds-server-name"     = local.psql.server_name
   })
 }
@@ -89,7 +89,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
+    dbname = try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name
     engine = local.psql.engine
   })
 }
@@ -141,7 +141,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
       data.aws_db_instance.hoop_db_server[0].port
     ) : local.psql.port
-    dbname = try(var.databases[each.key].create, true) == true ? mysql_database.this[each.key].name : var.databases[each.key].name
+    dbname = try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name
     engine = local.psql.engine
   })
   lifecycle {

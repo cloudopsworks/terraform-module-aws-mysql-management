@@ -59,6 +59,26 @@ This Terraform module simplifies AWS MySQL database management by providing a de
 
 The module supports both RDS instances and Aurora clusters, with optional direct connection capabilities for existing database infrastructures.
 
+## Upgrading from v1.4.1
+
+Version 1.5 delegates MySQL database and user resources to
+`terraform-module-mysql-management` v2.3 while AWS Secrets Manager, password rotation,
+grants, roles, RDS discovery, and Hoop integration remain in this module. Declarative
+`moved` blocks preserve every existing `for_each` instance:
+
+| Previous address | New address |
+|---|---|
+| `mysql_database.this` | `module.db.mysql_database.this` |
+| `mysql_user.owner` | `module.db.mysql_user.owner` |
+| `mysql_user.user` | `module.db.mysql_user.user` |
+
+No manual `tofu state mv` or `terraform state mv` commands are required. Back up state,
+upgrade the module reference, and review the first plan. The move should not add, destroy,
+or rotate these resources; AWS-owned password and grant resource addresses are unchanged.
+Keep the `moved` blocks in place so callers can upgrade from older releases later.
+
+This release requires OpenTofu or Terraform 1.7 or newer.
+
 ## Usage
 
 
@@ -282,7 +302,7 @@ dependency "database" {
 }
 
 terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0"
 }
 
 inputs = {
@@ -454,7 +474,7 @@ passwords on the next apply.
 
 1) terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -495,7 +515,7 @@ cd mysql-management/dev
 ### 2. Create `terragrunt.hcl`
 ```hcl
 terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9"
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0"
 }
 
 include {
@@ -643,7 +663,7 @@ This creates:
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -679,7 +699,7 @@ rds:
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -735,7 +755,7 @@ rotation_lambda_name: mysql-rotator-staging
 
 terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("inputs.yaml")
 ```
 
@@ -789,7 +809,7 @@ specials_in_password: false     # legacy JDBC clients here cannot handle special
 
 Hub terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("hub-inputs.yaml")
 ```
 
@@ -821,7 +841,7 @@ rds:
 
 Spoke terragrunt.hcl
 ```hcl
-terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.3.9" }
+terraform { source = "git::https://github.com/cloudopsworks/terraform-module-aws-mysql-management.git?ref=v1.5.0" }
 inputs = read_yaml("spoke-inputs.yaml")
 ```
 
@@ -931,9 +951,11 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 | <a name="requirement_mysql"></a> [mysql](#requirement\_mysql) | ~> 3.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.4 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.13 |
 
 ## Providers
 
@@ -941,13 +963,14 @@ Available targets:
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
 | <a name="provider_mysql"></a> [mysql](#provider\_mysql) | ~> 3.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | n/a |
-| <a name="provider_time"></a> [time](#provider\_time) | n/a |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.4 |
+| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
+| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-mysql-management.git | v2.3.0 |
 | <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources
@@ -962,15 +985,12 @@ Available targets:
 | [aws_secretsmanager_secret_version.owner_rotated](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_secretsmanager_secret_version.user](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
 | [aws_secretsmanager_secret_version.user_rotated](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/secretsmanager_secret_version) | resource |
-| [mysql_database.this](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/database) | resource |
 | [mysql_grant.owner](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_grant.role](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_grant.user_all_db](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_grant.user_ro_tab_def_priv](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_grant.user_tab_def_priv](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_role.role](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/role) | resource |
-| [mysql_user.owner](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/user) | resource |
-| [mysql_user.user](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/user) | resource |
 | [random_password.owner](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.owner_initial](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.user](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |

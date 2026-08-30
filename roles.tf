@@ -27,7 +27,7 @@ resource "mysql_grant" "role" {
   }
   role = mysql_role.role[each.key].name
   database = try(each.value.db_ref, "") != "" ? (
-    try(var.databases[each.value.db_ref].create, true) == true ? mysql_database.this[each.value.db_ref].name : var.databases[each.value.db_ref].name
+    try(var.databases[each.value.db_ref].create, true) == true ? local.database_names[each.value.db_ref] : var.databases[each.value.db_ref].name
   ) : try(each.value.database_name, "*")
   table      = try(each.value.table_name, "*")
   privileges = try(each.value.grants, ["ALL PRIVILEGES"])

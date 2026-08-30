@@ -44,23 +44,3 @@ resource "random_password" "user_initial" {
   min_numeric      = 2
   min_lower        = 2
 }
-
-import {
-  for_each = {
-    for k, user in var.users : k => user if try(user.import, false)
-  }
-  to = mysql_user.user[each.key]
-  id = each.value.name
-}
-
-resource "mysql_user" "user" {
-  for_each = var.users
-  user     = each.value.name
-  host     = try(each.value.host, null)
-  plaintext_password = var.rotation_lambda_name == "" ? random_password.user[each.key].result : (
-    try(length(data.aws_secretsmanager_secret_versions.user_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
-    jsondecode(data.aws_secretsmanager_secret_version.user_rotated[each.key].secret_string)["password"] :
-    random_password.user_initial[each.key].result
-  )
-  tls_option = try(each.value.tls_option, null)
-}
