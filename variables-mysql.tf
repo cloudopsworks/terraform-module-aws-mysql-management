@@ -17,6 +17,23 @@
 #     host: "%"                  # (Optional) The source host for the user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the user. Defaults to "NONE".
 #     import: false              # (Optional) Whether to import the user and its Secrets Manager secret if they already exist. Defaults to false.
+#     auth_plugin: "caching_sha2_password" # (Optional) Authentication plugin for the account. Common values: mysql_native_password,
+#                                #            caching_sha2_password, sha256_password, AWSAuthenticationPlugin (RDS/Aurora IAM auth).
+#                                #            Defaults to the server default.
+#                                #            Plugins that authenticate without a stored password - AWSAuthenticationPlugin,
+#                                #            auth_socket, authentication_kerberos, authentication_ldap_sasl,
+#                                #            authentication_ldap_simple, authentication_pam, authentication_webauthn,
+#                                #            authentication_windows, mysql_no_login, gssapi, named_pipe, pam, unix_socket, aad_auth -
+#                                #            suppress password generation. The Secrets Manager secret is still created and holds the
+#                                #            connection metadata, but carries no `password` key and no password-bearing
+#                                #            connection_string. Such a user cannot be combined with rotation_lambda_name.
+#     auth_string: "*2470C0..."  # (Optional) Already-hashed authentication string for auth_plugin. Supplying it also suppresses
+#                                #            password generation and storage. Alias of auth_string_hashed. Defaults to null.
+#     auth_string_hashed: "*24..." # (Optional) Same as auth_string; read only when auth_string is absent. Defaults to null.
+#     max_user_connections: 0    # (Optional) Maximum simultaneous connections for the account. 0 means unlimited.
+#                                #            Defaults to the server default.
+#     max_statement_time: 0      # (Optional) Maximum statement execution time in seconds. 0 means unlimited.
+#                                #            MariaDB 10.1.1+ only, not MySQL. Defaults to the server default.
 #     connection_string_type: "jdbc" # (Optional) Emit a ready-to-use connection string in the secret payload.
 #                                #            Possible values: jdbc, jdbc_plain, dotnet, odbc, gomysql. Defaults to "" (no connection string).
 #     secret:                    # (Optional) Per-user AWS Secrets Manager overrides. Defaults to {} (module-wide secrets_* variables apply).
@@ -63,6 +80,16 @@ variable "roles" {
 #     default_collation: "utf8mb4_general_ci" # (Optional) Collation of the database. Defaults to "utf8mb4_general_ci".
 #     host: "%"                  # (Optional) The source host for the owner user. Defaults to "%".
 #     tls_option: "NONE"         # (Optional) The TLS option for the owner user. Defaults to "NONE".
+#     auth_plugin: "caching_sha2_password" # (Optional) Authentication plugin for the owner account. Same values and same
+#                                #            password-suppression behaviour as users.<user_ref>.auth_plugin above.
+#                                #            Defaults to the server default.
+#     auth_string: "*2470C0..."  # (Optional) Already-hashed authentication string for the owner account's auth_plugin.
+#                                #            Also suppresses password generation and storage. Defaults to null.
+#     auth_string_hashed: "*24..." # (Optional) Same as auth_string; read only when auth_string is absent. Defaults to null.
+#     max_user_connections: 0    # (Optional) Maximum simultaneous connections for the owner account. 0 means unlimited.
+#                                #            Defaults to the server default.
+#     max_statement_time: 0      # (Optional) Maximum statement execution time in seconds for the owner account. 0 means
+#                                #            unlimited. MariaDB 10.1.1+ only, not MySQL. Defaults to the server default.
 #     import: false              # (Optional) Whether to import the database, its owner user and the owner Secrets Manager secret
 #                                #            if they already exist. Defaults to false.
 #     secret:                    # (Optional) Per-database AWS Secrets Manager overrides for the owner secret. Only used when

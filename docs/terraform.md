@@ -12,16 +12,15 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
-| <a name="provider_mysql"></a> [mysql](#provider\_mysql) | ~> 3.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.4 |
-| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.62.0 |
+| <a name="provider_mysql"></a> [mysql](#provider\_mysql) | 3.0.95 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-mysql-management.git | v2.3.0 |
+| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-mysql-management.git | v2.3.1-alpha.3 |
 | <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources
@@ -42,12 +41,8 @@
 | [mysql_grant.user_ro_tab_def_priv](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_grant.user_tab_def_priv](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/grant) | resource |
 | [mysql_role.role](https://registry.terraform.io/providers/petoju/mysql/latest/docs/resources/role) | resource |
-| [random_password.owner](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.owner_initial](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
-| [random_password.user](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.user_initial](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
-| [time_rotating.owner](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/rotating) | resource |
-| [time_rotating.user](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/rotating) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_db_instance.db](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
 | [aws_db_instance.hoop_db_server](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/db_instance) | data source |
@@ -94,5 +89,5 @@
 | Name | Description |
 |------|-------------|
 | <a name="output_hoop_connections"></a> [hoop\_connections](#output\_hoop\_connections) | Hoop.dev connection definitions for every managed owner and user, keyed by connection name. Null when `hoop.enabled` is false or the resolved engine is not MySQL. |
-| <a name="output_owners"></a> [owners](#output\_owners) | Map of database refs to their generated owner user, keyed by the `databases` map key. Each entry exposes the owner username and the AWS Secrets Manager secret holding its credentials. Only databases with `create_owner = true` are present. |
-| <a name="output_users"></a> [users](#output\_users) | Map of user refs to their managed MySQL user, keyed by the `users` map key. Each entry exposes the username and the AWS Secrets Manager secret holding its credentials. |
+| <a name="output_owners"></a> [owners](#output\_owners) | Map of database refs to their generated owner user, keyed by the `databases` map key. Each entry exposes the owner username, the AWS Secrets Manager secret holding its credentials, and whether that secret carries a password. Only databases with `create_owner = true` are present. |
+| <a name="output_users"></a> [users](#output\_users) | Map of user refs to their managed MySQL user, keyed by the `users` map key. Each entry exposes the username, the AWS Secrets Manager secret holding its credentials, and whether that secret carries a password. |

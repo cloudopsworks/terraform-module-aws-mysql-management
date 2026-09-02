@@ -82,12 +82,68 @@ run "state_compatible_child_addresses" {
   }
 
   assert {
-    condition     = length(random_password.owner) == 1 && length(random_password.user) == 1
-    error_message = "AWS must retain ownership of password generation during the state move."
+    condition     = length(random_password.owner_initial) == 0 && length(random_password.user_initial) == 0
+    error_message = "Without a rotation lambda the initial-password seeds must not be created; module.db owns generation."
+  }
+
+  assert {
+    condition     = module.db.owner_password_managed["shared"] && module.db.user_password_managed["shared"]
+    error_message = "Password-authenticated accounts must report a module-held password."
   }
 
   assert {
     condition     = length(mysql_grant.owner) == 1 && length(mysql_grant.user_ro_tab_def_priv) == 1
     error_message = "AWS must retain the existing grant resources and keys."
+  }
+}
+
+# An account whose auth_plugin authenticates without a stored password must still be created
+# and still get a secret, but that secret must carry connection metadata only.
+run "iam_authenticated_accounts_store_no_password" {
+  command = plan
+
+  variables {
+    users = {
+      shared = {
+        name       = "app_reader"
+        grant      = "readonly"
+        db_ref     = "shared"
+        host       = "%"
+        tls_option = "NONE"
+        import     = false
+      }
+      iam = {
+        name                 = "app_iam"
+        grant                = "readwrite"
+        db_ref               = "shared"
+        auth_plugin          = "AWSAuthenticationPlugin"
+        max_user_connections = 50
+      }
+    }
+  }
+
+  assert {
+    condition     = length(module.db.user_usernames) == 2
+    error_message = "An IAM-authenticated user must still be created in MySQL."
+  }
+
+  assert {
+    condition     = !module.db.user_password_managed["iam"]
+    error_message = "AWSAuthenticationPlugin must suppress password generation."
+  }
+
+  assert {
+    condition     = module.db.user_password_managed["shared"]
+    error_message = "Suppression must not leak to password-authenticated users in the same map."
+  }
+
+  assert {
+    condition     = length(local.user_stored_passwords["iam"]) == 0
+    error_message = "No password may be written into an IAM-authenticated user's secret payload."
+  }
+
+  assert {
+    condition     = length(aws_secretsmanager_secret.user) == 2
+    error_message = "The secret itself must still be created so the connection metadata is available."
   }
 }

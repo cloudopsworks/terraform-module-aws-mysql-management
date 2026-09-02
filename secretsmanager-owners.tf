@@ -78,9 +78,11 @@ resource "aws_secretsmanager_secret_version" "owner" {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name == ""
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
-  secret_string = jsonencode({
+  # `password` is merged in rather than declared inline: an owner whose auth_plugin
+  # authenticates without one has no password to store, and the payload carries connection
+  # metadata only.
+  secret_string = jsonencode(merge(local.owner_stored_passwords[each.key], {
     username = local.owner_list[each.key]
-    password = random_password.owner[each.key].result
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].address
@@ -91,7 +93,7 @@ resource "aws_secretsmanager_secret_version" "owner" {
     ) : local.psql.port
     dbname = try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name
     engine = local.psql.engine
-  })
+  }))
 }
 
 data "aws_secretsmanager_secrets" "owner" {
@@ -154,6 +156,12 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
 resource "aws_secretsmanager_secret_rotation" "owner" {
   for_each = {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
+  }
+  lifecycle {
+    precondition {
+      condition     = module.db.owner_password_managed[each.key]
+      error_message = "databases.${each.key}: auth_plugin '${try(each.value.auth_plugin, "")}' authenticates without a password, so there is nothing for rotation_lambda_name to rotate. Drop the auth_plugin or clear rotation_lambda_name."
+    }
   }
   secret_id           = aws_secretsmanager_secret.owner[each.key].arn
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn

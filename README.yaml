@@ -32,6 +32,7 @@ introduction: |-
   - **Secret Lifecycle**: Per-secret recovery window and optional cross-region replication, set module-wide or overridden per database/user
   - **Password Rotation**: Automated password rotation with Lambda function support
   - **Password Policy**: 25-character generated passwords, with `specials_in_password` to emit alphanumeric-only credentials for clients that cannot handle special characters
+  - **Account Authentication**: Per-account `auth_plugin`, `auth_string`, `max_user_connections` and `max_statement_time`, including `AWSAuthenticationPlugin` for RDS/Aurora IAM authentication
   - **Access Control**: Hoop.dev integration for secure, audited database access
   - **Multi-Environment Support**: Hub and spoke architecture support for complex deployments
 
@@ -56,6 +57,38 @@ introduction: |-
   Keep the `moved` blocks in place so callers can upgrade from older releases later.
 
   This release requires OpenTofu or Terraform 1.7 or newer.
+
+  ## Upgrading from v1.5.x
+
+  Password generation follows the MySQL resources into `terraform-module-mysql-management`.
+  This module had been declaring `random_password` and `time_rotating` resources identical to
+  the ones the child module already provides; it now consumes `owner_passwords` /
+  `user_passwords` instead and keeps only the AWS Secrets Manager side. Four more `moved`
+  blocks carry the existing values across:
+
+  | Previous address | New address |
+  |---|---|
+  | `random_password.owner` | `module.db.random_password.owner` |
+  | `random_password.user` | `module.db.random_password.user` |
+  | `time_rotating.owner` | `module.db.time_rotating.owner` |
+  | `time_rotating.user` | `module.db.time_rotating.user` |
+
+  The `for_each` keys are unchanged and the child module writes `keepers` only while
+  `force_reset` is true, so **existing passwords are adopted in place — the upgrade does not
+  rotate them**. Review the first plan and confirm it reports moves rather than
+  replacements before applying. This upgrade requires `terraform-module-mysql-management`
+  v2.3.1 or newer; earlier releases always wrote `keepers` and would replace every password.
+
+  `random_password.owner_initial` and `random_password.user_initial` stay in this module.
+  They seed the first Secrets Manager version when `rotation_lambda_name` is set, a path the
+  child module has no counterpart for, and their addresses are untouched.
+
+  One caveat: the child module creates `time_rotating` only when `password_rotation_period`
+  is greater than zero, whereas this module created it unconditionally. If you upgrade with
+  `password_rotation_period = 0` and no rotation lambda, the moved `time_rotating` instances
+  are destroyed, which can cascade into a password replacement. Upgrade with a non-zero
+  `password_rotation_period` (the default is 90), then set it to zero in a later apply if you
+  want time-based rotation off.
 
 # How to use this project
 usage: |-
@@ -113,6 +146,25 @@ usage: |-
   #     host: "%"                                  # (Optional) Source host for the user; default: "%"
   #     tls_option: "NONE"                         # (Optional) TLS option; default: "NONE"
   #     import: false                              # (Optional) Import existing user and its Secrets Manager secret; default: false
+  #     auth_plugin: ""                            # (Optional) Authentication plugin for the account. Common values:
+  #                                                #            "mysql_native_password", "caching_sha2_password", "sha256_password",
+  #                                                #            "AWSAuthenticationPlugin" (RDS/Aurora IAM auth); default: server default.
+  #                                                #            Plugins that authenticate without a stored password
+  #                                                #            ("AWSAuthenticationPlugin", "auth_socket", "authentication_kerberos",
+  #                                                #            "authentication_ldap_sasl", "authentication_ldap_simple",
+  #                                                #            "authentication_pam", "authentication_webauthn",
+  #                                                #            "authentication_windows", "mysql_no_login", "gssapi", "named_pipe",
+  #                                                #            "pam", "unix_socket", "aad_auth") suppress password generation: the
+  #                                                #            secret still holds the connection metadata but carries no password
+  #                                                #            key and no password-bearing connection string, and the user cannot
+  #                                                #            be combined with rotation_lambda_name
+  #     auth_string: null                          # (Optional) Already-hashed authentication string for auth_plugin
+  #                                                #            (e.g. "*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19"). Supplying it also
+  #                                                #            suppresses password generation and storage; default: null
+  #     auth_string_hashed: null                   # (Optional) Same as auth_string; read only when auth_string is absent; default: null
+  #     max_user_connections: 0                    # (Optional) Max simultaneous connections, 0 = unlimited; default: server default
+  #     max_statement_time: 0                      # (Optional) Max statement execution time in seconds, 0 = unlimited.
+  #                                                #            MariaDB 10.1.1+ only, not MySQL; default: server default
   #     connection_string_type: ""                 # (Optional) Emit a ready-to-use connection string in the secret payload.
   #                                                #            Values: "jdbc", "jdbc_plain", "dotnet", "odbc", "gomysql"; default: "" (none)
   #     secret:                                    # (Optional) Per-user Secrets Manager overrides; default: {} (module-wide secrets_* apply)
@@ -150,6 +202,16 @@ usage: |-
   #     default_collation: "utf8mb4_general_ci"    # (Optional) Collation; default: "utf8mb4_general_ci"
   #     host: "%"                                  # (Optional) Source host for owner user; default: "%"
   #     tls_option: "NONE"                         # (Optional) TLS option for owner user; default: "NONE"
+  #     auth_plugin: ""                            # (Optional) Authentication plugin for the owner account. Same values and same
+  #                                                #            password-suppression behaviour as users.<user_ref>.auth_plugin;
+  #                                                #            default: server default
+  #     auth_string: null                          # (Optional) Already-hashed authentication string for the owner account's
+  #                                                #            auth_plugin; also suppresses password generation; default: null
+  #     auth_string_hashed: null                   # (Optional) Same as auth_string; read only when auth_string is absent; default: null
+  #     max_user_connections: 0                    # (Optional) Max simultaneous connections for the owner, 0 = unlimited;
+  #                                                #            default: server default
+  #     max_statement_time: 0                      # (Optional) Max statement execution time in seconds for the owner, 0 = unlimited.
+  #                                                #            MariaDB 10.1.1+ only, not MySQL; default: server default
   #     import: false                              # (Optional) Import existing database, owner user and owner secret; default: false
   #     secret:                                    # (Optional) Secrets Manager overrides for the owner secret; only used when
   #                                                #            create_owner is true; default: {} (module-wide secrets_* apply)
@@ -193,6 +255,9 @@ usage: |-
   direct: {}
 
   # password_rotation_period: 90                  # (Optional) Password rotation period in days; default: 90
+  #                                               #            With rotation_lambda_name empty this is the time-based rotation
+  #                                               #            interval applied to the generated passwords; with a rotation lambda
+  #                                               #            set it is the lambda's rotation schedule instead
   password_rotation_period: 90
 
   # secrets_kms_key_id: null                      # (Optional) KMS Key ID/ARN/Alias for Secrets Manager encryption; default: null
@@ -336,6 +401,15 @@ usage: |-
       default_collation: "utf8mb4_general_ci" # (Optional) Defaults to utf8mb4_general_ci
       host: "%"                       # (Optional) Owner host. Defaults to "%"
       tls_option: "NONE"               # (Optional) Owner TLS option. Provider-specific. Defaults to "NONE"
+      auth_plugin: "caching_sha2_password" # (Optional) Auth plugin for the owner account. Same values and same
+                                       #            password-suppression behaviour as users.<user_ref>.auth_plugin.
+                                       #            Defaults to the server default
+      auth_string: "*2470C0..."       # (Optional) Already-hashed auth string for the owner account. Also suppresses
+                                       #            password generation and storage. Defaults to null
+      auth_string_hashed: "*2470C0..." # (Optional) Same as auth_string; read only when auth_string is absent. Defaults to null
+      max_user_connections: 0          # (Optional) Owner connection limit, 0 = unlimited. Defaults to server default
+      max_statement_time: 0            # (Optional) Owner statement limit in seconds, 0 = unlimited.
+                                       #            MariaDB 10.1.1+ only, not MySQL. Defaults to server default
       import: false                    # (Optional) Import existing DB, owner user and owner secret instead of creating. Defaults to false
       secret:                          # (Optional) Secrets Manager overrides for the owner secret. Only read when
                                        #            create_owner is true. Defaults to {}
@@ -354,6 +428,18 @@ usage: |-
       database_name: "dbname"         # (Optional) Explicit DB name (alt to db_ref)
       host: "%"                       # (Optional) User host. Defaults to "%"
       tls_option: "NONE"               # (Optional) TLS option for user. Defaults to "NONE"
+      auth_plugin: "caching_sha2_password" # (Optional) Auth plugin for the account. Common values:
+                                       #            mysql_native_password|caching_sha2_password|sha256_password|
+                                       #            AWSAuthenticationPlugin (RDS/Aurora IAM auth).
+                                       #            Defaults to the server default. Plugins that authenticate without a
+                                       #            stored password suppress password generation entirely - see
+                                       #            "Account authentication settings" below
+      auth_string: "*2470C0..."       # (Optional) Already-hashed auth string for auth_plugin. Also suppresses password
+                                       #            generation and storage. Defaults to null
+      auth_string_hashed: "*2470C0..." # (Optional) Same as auth_string; read only when auth_string is absent. Defaults to null
+      max_user_connections: 0          # (Optional) Connection limit, 0 = unlimited. Defaults to server default
+      max_statement_time: 0            # (Optional) Statement limit in seconds, 0 = unlimited.
+                                       #            MariaDB 10.1.1+ only, not MySQL. Defaults to server default
       import: false                    # (Optional) Import existing user and its Secrets Manager secret. Defaults to false
       connection_string_type: "jdbc"  # (Optional) Emit a ready-to-use connection string in the secret payload.
                                        #            jdbc|jdbc_plain|dotnet|odbc|gomysql. Defaults to "" (none)
@@ -410,7 +496,9 @@ usage: |-
     password: "localpass"             # (Optional) Local tunnel password. Default "noop"
 
   # Rotation & Secrets
-  password_rotation_period: 90         # (Optional) Days between rotations. Default 90
+  password_rotation_period: 90         # (Optional) Days between rotations. Default 90. With rotation_lambda_name
+                                       #            empty this is the time-based interval for the generated passwords;
+                                       #            with a lambda set it is the lambda's rotation schedule
   rotation_lambda_name: ""            # (Optional) Lambda name to enable Secrets Manager rotation. Default ""
   rotation_duration: "1h"             # (Optional) Rotation max duration. Default "1h"
   rotate_immediately: false            # (Optional) Trigger rotation now. Default false
@@ -428,10 +516,10 @@ usage: |-
 
   ### Generated password policy
 
-  Owner and user passwords are generated by the `random` provider and written to AWS
-  Secrets Manager. The policy is fixed at 25 characters with at least 2 uppercase,
-  2 lowercase and 2 numeric characters. `specials_in_password` controls the special
-  characters:
+  Owner and user passwords are generated inside `module.db`
+  (`terraform-module-mysql-management`) and written to AWS Secrets Manager by this module.
+  The policy is fixed at 25 characters with at least 2 uppercase, 2 lowercase and 2 numeric
+  characters. `specials_in_password` controls the special characters:
 
   | `specials_in_password` | Character set                        | Minimum specials |
   |------------------------|--------------------------------------|------------------|
@@ -441,6 +529,74 @@ usage: |-
   Set it to `false` when the consuming client, connection string, or ORM cannot handle
   special characters in the password. Changing the value regenerates the affected
   passwords on the next apply.
+
+  With `rotation_lambda_name` empty, `password_rotation_period` is the time-based rotation
+  interval applied to these generated passwords. With a rotation lambda configured the
+  password of record is whatever Secrets Manager holds; `random_password.owner_initial` /
+  `random_password.user_initial` seed only the first version, and `password_rotation_period`
+  becomes the lambda's schedule.
+
+  ### Account authentication settings
+
+  Every `users.<user_ref>` entry, and every `databases.<db_ref>` entry that sets
+  `create_owner = true`, accepts optional account attributes that are passed straight through
+  to the MySQL account:
+
+  | Attribute | Description |
+  |---|---|
+  | `auth_plugin` | Authentication plugin for the account. Server default when omitted. |
+  | `auth_string` / `auth_string_hashed` | Already-hashed authentication string for `auth_plugin`. |
+  | `max_user_connections` | Maximum simultaneous connections. `0` means unlimited. |
+  | `max_statement_time` | Maximum statement execution time in seconds. `0` means unlimited. MariaDB 10.1.1+ only, not MySQL. |
+  | `tls_option` | Connection TLS requirement, e.g. `NONE`, `SSL`, `X509`. |
+
+  Each is omitted from the account when unset, so existing deployments keep the server
+  defaults and produce no plan diff.
+
+  **Accounts that authenticate without a password**
+
+  `AWSAuthenticationPlugin` gives an account RDS/Aurora IAM authentication: the credential is
+  an IAM auth token minted at connect time, not a password stored in the database. Supplying
+  `auth_string` likewise makes the supplied hash the credential. In both cases there is no
+  password for this module to generate or store, and one written anyway could never
+  authenticate the account. `module.db` withholds it, and this module follows:
+
+  | | Password-authenticated account | `AWSAuthenticationPlugin` / `auth_string` account |
+  |---|---|---|
+  | MySQL account created | yes | yes |
+  | Password generated | yes | no |
+  | Secrets Manager secret created | yes | yes |
+  | `password` key in the secret payload | yes | no |
+  | `connection_string` in the payload | yes | only `jdbc_plain`, which embeds no credential |
+  | `has_password` in the `owners` / `users` output | `true` | `false` |
+  | Works with `rotation_lambda_name` | yes | no — the plan fails with a precondition error |
+
+  The full set of plugins treated this way is
+  `AWSAuthenticationPlugin`, `auth_socket`, `authentication_kerberos`,
+  `authentication_ldap_sasl`, `authentication_ldap_simple`, `authentication_pam`,
+  `authentication_webauthn`, `authentication_windows`, `mysql_no_login`, `gssapi`,
+  `named_pipe`, `pam`, `unix_socket` and `aad_auth`. Names are matched case-insensitively.
+
+  Example — an application role that connects with RDS IAM authentication, alongside an
+  ordinary password-authenticated owner:
+
+  ```yaml
+  databases:
+    app:
+      name: appdb
+      create_owner: true              # owner keeps a generated password in Secrets Manager
+  users:
+    app_iam:
+      name: app_iam
+      grant: readwrite
+      db_ref: app
+      auth_plugin: AWSAuthenticationPlugin   # no password generated or stored
+      max_user_connections: 50
+  ```
+
+  The `app_iam` secret still carries `username`, `host`, `port`, `dbname` and `engine`, so an
+  application can read its connection metadata from the same place as every other user and
+  mint an IAM token instead of reading a password.
 
   ---
   ### End-to-end Terragrunt Example

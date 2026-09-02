@@ -24,6 +24,35 @@ moved {
   to   = module.db.mysql_user.user
 }
 
+# Password generation moved to module.db, which declares the same `random_password` and
+# `time_rotating` resources this module used to duplicate. The destination `for_each` keys
+# are unchanged, and module.db writes `keepers` only while `force_reset` is true, so the
+# generated values are adopted in place rather than replaced.
+#
+# These addresses only ever hold instances when `rotation_lambda_name` is empty; under a
+# rotation lambda both sides are empty and the blocks are inert. `random_password.owner_initial`
+# and `random_password.user_initial` stay in this module — they seed the first Secrets Manager
+# version for the rotation-lambda path and have no counterpart in module.db.
+moved {
+  from = random_password.owner
+  to   = module.db.random_password.owner
+}
+
+moved {
+  from = random_password.user
+  to   = module.db.random_password.user
+}
+
+moved {
+  from = time_rotating.owner
+  to   = module.db.time_rotating.owner
+}
+
+moved {
+  from = time_rotating.user
+  to   = module.db.time_rotating.user
+}
+
 # Import blocks must remain in this root module. Their destinations follow the
 # moved resources so existing and newly imported configurations share addresses.
 import {
