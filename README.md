@@ -596,7 +596,7 @@ authenticate the account. `module.db` withholds it, and this module follows:
 | `password` key in the secret payload | yes | no |
 | `connection_string` in the payload | yes | only `jdbc_plain`, which embeds no credential |
 | `has_password` in the `owners` / `users` output | `true` | `false` |
-| Works with `rotation_lambda_name` | yes | no — the plan fails with a precondition error |
+| Rotated by `rotation_lambda_name` | yes | no — excluded, not rejected |
 
 The full set of plugins treated this way is
 `AWSAuthenticationPlugin`, `auth_socket`, `authentication_kerberos`,
@@ -624,6 +624,31 @@ users:
 The `app_iam` secret still carries `username`, `host`, `port`, `dbname` and `engine`, so an
 application can read its connection metadata from the same place as every other user and
 mint an IAM token instead of reading a password.
+
+**Mixing rotated and IAM-authenticated accounts**
+
+Setting `rotation_lambda_name` does not conflict with these accounts. The lambda rotates the
+accounts that have a password, and the ones that authenticate without a password are left
+out of rotation entirely — no `aws_secretsmanager_secret_rotation`, and no initial password
+either. This matters because the seed written into the first Secrets Manager version is just
+as unusable for an IAM-authenticated account as any later rotated value would be, so the
+module does not generate one at all.
+
+```yaml
+rotation_lambda_name: mysql-rotation
+users:
+  app:                              # rotated by the lambda on the normal schedule
+    name: app
+    grant: readwrite
+    db_ref: shared
+  app_iam:                          # no seed password, no rotation, secret has no password key
+    name: app_iam
+    grant: readwrite
+    db_ref: shared
+    auth_plugin: AWSAuthenticationPlugin
+```
+
+The same holds for owner accounts declared through `databases.<db_ref>.auth_plugin`.
 
 ---
 ### End-to-end Terragrunt Example
@@ -1125,7 +1150,7 @@ Available targets:
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-mysql-management.git | v2.3.1-alpha.3 |
+| <a name="module_db"></a> [db](#module\_db) | git::https://github.com/cloudopsworks/terraform-module-mysql-management.git | v2.3.1-alpha.4 |
 | <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources

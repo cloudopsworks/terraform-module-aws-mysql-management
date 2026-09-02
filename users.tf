@@ -10,10 +10,10 @@
 # Generation and time-based rotation of user passwords belong to module.db; see
 # module-db.tf. Only the rotation-lambda seed remains here, because under a lambda the
 # password of record lives in Secrets Manager and this resource just supplies the first one.
+# Not created for accounts whose auth_plugin authenticates without a stored password — the
+# seed would be as unusable as any other password for them.
 resource "random_password" "user_initial" {
-  for_each = {
-    for k, user in var.users : k => user if var.rotation_lambda_name != ""
-  }
+  for_each         = local.user_rotation_managed
   length           = 25
   special          = var.specials_in_password
   override_special = "=_-+@~#"

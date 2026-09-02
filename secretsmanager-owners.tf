@@ -128,13 +128,12 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
     for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
   }
   secret_id = aws_secretsmanager_secret.owner[each.key].id
-  secret_string = jsonencode({
+  # A suppressed owner has no seed password and never enters rotation, so its first and only
+  # version carries the connection metadata alone.
+  secret_string = jsonencode(merge(local.owner_password_suppressed[each.key] ? {} : {
+    password = local.owner_rotated_passwords[each.key]
+    }, {
     username = local.owner_list[each.key]
-    password = (
-      try(length(data.aws_secretsmanager_secret_versions.owner_rotated[each.key].versions), 0) > 0 && !var.force_reset ?
-      jsondecode(data.aws_secretsmanager_secret_version.owner_rotated[each.key].secret_string)["password"] :
-      random_password.owner_initial[each.key].result
-    )
     host = local.hoop_connect ? (
       try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
       data.aws_db_instance.hoop_db_server[0].address
@@ -145,7 +144,7 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
     ) : local.psql.port
     dbname = try(var.databases[each.key].create, true) == true ? local.database_names[each.key] : var.databases[each.key].name
     engine = local.psql.engine
-  })
+  }))
   lifecycle {
     ignore_changes = [
       secret_string
@@ -153,16 +152,10 @@ resource "aws_secretsmanager_secret_version" "owner_rotated" {
   }
 }
 
+# Owners that authenticate without a stored password are simply left out of rotation, so a
+# `databases` map may freely mix them with owners whose passwords the lambda rotates.
 resource "aws_secretsmanager_secret_rotation" "owner" {
-  for_each = {
-    for key, db in var.databases : key => db if try(db.create_owner, false) && var.rotation_lambda_name != ""
-  }
-  lifecycle {
-    precondition {
-      condition     = module.db.owner_password_managed[each.key]
-      error_message = "databases.${each.key}: auth_plugin '${try(each.value.auth_plugin, "")}' authenticates without a password, so there is nothing for rotation_lambda_name to rotate. Drop the auth_plugin or clear rotation_lambda_name."
-    }
-  }
+  for_each            = local.owner_rotation_managed
   secret_id           = aws_secretsmanager_secret.owner[each.key].arn
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
   rotate_immediately  = var.rotate_immediately

@@ -19,6 +19,12 @@ mock_provider "aws" {
       account_id = "123456789012"
     }
   }
+
+  mock_data "aws_lambda_function" {
+    defaults = {
+      arn = "arn:aws:lambda:us-east-1:123456789012:function:mysql-rotation"
+    }
+  }
 }
 mock_provider "mysql" {}
 
@@ -145,5 +151,84 @@ run "iam_authenticated_accounts_store_no_password" {
   assert {
     condition     = length(aws_secretsmanager_secret.user) == 2
     error_message = "The secret itself must still be created so the connection metadata is available."
+  }
+}
+
+# A rotation lambda and auth_plugin accounts must coexist: the lambda rotates the accounts
+# that have a password, and the ones that authenticate without one are left out entirely
+# rather than being seeded with a password they could never use.
+run "rotation_lambda_mixes_with_auth_plugin_accounts" {
+  command = plan
+
+  variables {
+    rotation_lambda_name = "mysql-rotation"
+
+    databases = {
+      shared = {
+        name         = "appdb"
+        create       = true
+        create_owner = true
+      }
+      iamdb = {
+        name         = "iamdb"
+        create       = true
+        create_owner = true
+        auth_plugin  = "AWSAuthenticationPlugin"
+      }
+    }
+
+    users = {
+      rotated = {
+        name   = "app_reader"
+        grant  = "readonly"
+        db_ref = "shared"
+      }
+      iam = {
+        name        = "app_iam"
+        grant       = "readwrite"
+        db_ref      = "shared"
+        auth_plugin = "awsauthenticationplugin" # matched case-insensitively
+      }
+      hashed = {
+        name        = "app_hashed"
+        grant       = "readonly"
+        db_ref      = "shared"
+        auth_string = "*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(module.db.user_usernames) == 3 && length(module.db.owner_usernames) == 2
+    error_message = "Every account must still be created in MySQL regardless of auth_plugin."
+  }
+
+  assert {
+    condition     = length(random_password.user_initial) == 1 && keys(random_password.user_initial)[0] == "rotated"
+    error_message = "Only the password-authenticated user may be seeded; a seed for an auth_plugin account is unusable."
+  }
+
+  assert {
+    condition     = length(random_password.owner_initial) == 1 && keys(random_password.owner_initial)[0] == "shared"
+    error_message = "Only the password-authenticated owner may be seeded."
+  }
+
+  assert {
+    condition     = length(aws_secretsmanager_secret_rotation.user) == 1 && length(aws_secretsmanager_secret_rotation.owner) == 1
+    error_message = "Rotation must cover the password-authenticated accounts only, not fail the plan for the others."
+  }
+
+  assert {
+    condition     = length(aws_secretsmanager_secret.user) == 3 && length(aws_secretsmanager_secret.owner) == 2
+    error_message = "Every account keeps its secret so connection metadata stays available."
+  }
+
+  assert {
+    condition = (
+      length(local.user_stored_passwords["iam"]) == 0
+      && length(local.user_stored_passwords["hashed"]) == 0
+      && length(local.owner_stored_passwords["iamdb"]) == 0
+    )
+    error_message = "No password may be written for an account that authenticates without one."
   }
 }
