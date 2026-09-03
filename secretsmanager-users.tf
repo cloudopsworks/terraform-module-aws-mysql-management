@@ -35,19 +35,23 @@ locals {
     }
   }
   user_secrets_data = {
-    for key, user in var.users : key => merge({
-      username = user.name
-      password = random_password.user[key].result
-      host = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].address
-      ) : local.psql.host
-      port = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
-        data.aws_db_instance.hoop_db_server[0].port
-      ) : local.psql.port
-      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
-      engine = local.psql.engine
+    for key, user in var.users : key => merge(
+      # `password` is merged in rather than declared inline: a user whose auth_plugin
+      # authenticates without one has no password to store, and the payload carries
+      # connection metadata only.
+      local.user_stored_passwords[key],
+      {
+        username = user.name
+        host = local.hoop_connect ? (
+          try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+          data.aws_db_instance.hoop_db_server[0].address
+        ) : local.psql.host
+        port = local.hoop_connect ? (
+          try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+          data.aws_db_instance.hoop_db_server[0].port
+        ) : local.psql.port
+        dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
+        engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
         masterarn = data.aws_secretsmanager_secret.db_password[0].arn
@@ -56,7 +60,7 @@ locals {
   }
   user_secrets_data_merged = {
     for key, user_secret in local.user_secrets_data : key => merge(user_secret,
-      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+      try(var.users[key].connection_string_type, "") == "jdbc" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:mysql://%s:%s/%s?user=%s&password=%s&useSSL=true",
           user_secret.host, user_secret.port, user_secret.dbname,
@@ -69,21 +73,21 @@ locals {
           user_secret.host, user_secret.port, user_secret.dbname
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+      try(var.users[key].connection_string_type, "") == "dotnet" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Server=%s;Port=%s;Database=%s;Uid=%s;Pwd=%s;SslMode=Preferred",
           user_secret.host, user_secret.port,
           user_secret.dbname, user_secret.username, user_secret.password,
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "odbc" ? {
+      try(var.users[key].connection_string_type, "") == "odbc" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={MySQL ODBC 5.2 UNICODE Driver};Server=%s;Port=%s;Database=%s;User=%s;Password=%s;Option=3;",
           user_secret.host, user_secret.port, user_secret.dbname,
           user_secret.username, user_secret.password
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "gomysql" ? {
+      try(var.users[key].connection_string_type, "") == "gomysql" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("%s:%s@tcp(%s):%s/%s?ssl=Preferred",
           user_secret.username, urlencode(user_secret.password), user_secret.host,
@@ -100,23 +104,24 @@ locals {
     )
   }
   user_rotated_secrets_data = {
-    for key, user in var.users : key => merge({
-      username = user.name
-      password = (
-        try(length(data.aws_secretsmanager_secret_versions.user_rotated[key].versions), 0) > 0 && !var.force_reset ?
-        jsondecode(data.aws_secretsmanager_secret_version.user_rotated[key].secret_string)["password"] :
-        random_password.user_initial[key].result
-      )
-      host = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
-        data.aws_db_instance.hoop_db_server[0].address
-      ) : local.psql.host
-      port = local.hoop_connect ? (
-        try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
-        data.aws_db_instance.hoop_db_server[0].port
-      ) : local.psql.port
-      dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
-      engine = local.psql.engine
+    for key, user in var.users : key => merge(
+      # A suppressed user has no seed password and never enters rotation, so its first and
+      # only version carries the connection metadata alone.
+      local.user_password_suppressed[key] ? {} : {
+        password = local.user_rotated_passwords[key]
+      },
+      {
+        username = user.name
+        host = local.hoop_connect ? (
+          try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].endpoint :
+          data.aws_db_instance.hoop_db_server[0].address
+        ) : local.psql.host
+        port = local.hoop_connect ? (
+          try(var.hoop.cluster, false) ? data.aws_rds_cluster.hoop_db_server[0].port :
+          data.aws_db_instance.hoop_db_server[0].port
+        ) : local.psql.port
+        dbname = try(user.db_ref, "") != "" ? (try(var.databases[user.db_ref].create, true) == true ? local.database_names[user.db_ref] : var.databases[user.db_ref].name) : user.database_name
+        engine = local.psql.engine
       },
       length(data.aws_secretsmanager_secret.db_password) > 0 ? {
         masterarn = data.aws_secretsmanager_secret.db_password[0].arn
@@ -125,28 +130,28 @@ locals {
   }
   user_rotated_secrets_data_merged = {
     for key, user_secret in local.user_rotated_secrets_data : key => merge(user_secret,
-      try(var.users[key].connection_string_type, "") == "jdbc" ? {
+      try(var.users[key].connection_string_type, "") == "jdbc" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("jdbc:mysql://%s:%s/%s?user=%s&password=%s&useSSL=true",
           user_secret.host, user_secret.port, user_secret.dbname,
           user_secret.username, user_secret.password
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "dotnet" ? {
+      try(var.users[key].connection_string_type, "") == "dotnet" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Server=%s;Port=%s;Database=%s;Uid=%s;Pwd=%s;SslMode=Preferred",
           user_secret.host, user_secret.port,
           user_secret.dbname, user_secret.username, user_secret.password
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "odbc" ? {
+      try(var.users[key].connection_string_type, "") == "odbc" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("Driver={MySQL ODBC 5.2 UNICODE Driver};Server=%s;Port=%s;Database=%s;User=%s;Password=%s;Option=3;",
           user_secret.host, user_secret.port, user_secret.dbname,
           user_secret.username, user_secret.password
         )
       } : {},
-      try(var.users[key].connection_string_type, "") == "gomysql" ? {
+      try(var.users[key].connection_string_type, "") == "gomysql" && !local.user_password_suppressed[key] ? {
         connection_string_type = var.users[key].connection_string_type
         connection_string = format("%s:%s@tcp(%s):%s/%s?ssl=Preferred",
           user_secret.username, urlencode(user_secret.password), user_secret.host,
@@ -239,10 +244,10 @@ resource "aws_secretsmanager_secret_version" "user_rotated" {
   }
 }
 
+# Users that authenticate without a stored password are simply left out of rotation, so a
+# `users` map may freely mix them with users whose passwords the lambda rotates.
 resource "aws_secretsmanager_secret_rotation" "user" {
-  for_each = {
-    for k, v in var.users : k => v if var.rotation_lambda_name != ""
-  }
+  for_each            = local.user_rotation_managed
   secret_id           = aws_secretsmanager_secret.user[each.key].arn
   rotation_lambda_arn = data.aws_lambda_function.rotation_function[0].arn
   rotate_immediately  = var.rotate_immediately
