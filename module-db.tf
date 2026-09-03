@@ -8,7 +8,7 @@
 #
 
 module "db" {
-  source    = "git::https://github.com/cloudopsworks/terraform-module-mysql-management.git?ref=v2.3.1-alpha.4"
+  source    = "git::https://github.com/cloudopsworks/terraform-module-mysql-management.git?ref=v2.3.1"
   providers = { mysql = mysql }
 
   org        = var.org
